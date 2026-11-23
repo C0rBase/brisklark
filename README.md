@@ -4,34 +4,40 @@ A small, fast, quiet web browser for Windows, written in Rust. A row of tabs,
 one field, and the page, with Brave's ad blocker built in.
 
 It runs on **WebView2**, the Edge engine already on every Windows 11 PC, so
-there's no second copy of Chromium to download or keep in memory. One ~3 MB
-exe; its own process uses about 11 MB with the ad blocker loaded, and every tab
+there's no second copy of Chromium to download or keep in memory. One ~3.5 MB
+exe; its own process uses about 40 MB with Brave's full lists loaded, and every tab
 shares one Edge browser process.
 
 Brisklark is based on the design of [Search](https://github.com/driceroland/Search),
 a Mac browser by Office Commun (MIT licensed). It's an independent project, not
 made or endorsed by Office Commun.
 
-## Ad blocker
+## Shields (ad blocker)
 
-Built in and always on, using Brave's own engine
-([adblock-rust](https://github.com/brave/adblock-rust)) with EasyList and
-EasyPrivacy. As in Brave's Standard mode, ads and trackers from other sites are
-blocked before they leave the machine; a site's requests to itself are left
-alone. Each site's known ad slots are also hidden before the page draws.
+On by default and set up the way Brave ships it: Brave's own engine
+([adblock-rust](https://github.com/brave/adblock-rust)) running Brave's default
+lists (uBlock Origin filters, EasyList, EasyPrivacy, URLhaus, Brave's own lists)
+plus the cookie-notice lists, with uBlock Origin's scriptlets from Brave's
+resources file (what takes YouTube's video ads away). As in Brave's Standard
+mode, other sites' ads and trackers are blocked and a site's requests to itself
+meet only Brave's first-party list. Known ad slots are hidden before the page
+draws, and generic hiding rules are matched as the page's classes and ids appear.
+Scores 97/100 on adblock-tester.com.
 
-The lists are fetched with Windows' `curl.exe` on first launch and every four
-days after, then kept compiled in `%LOCALAPPDATA%\Brisklark\adblock.dat`, so
-later launches load them in milliseconds. Until that first download finishes, a
-short built-in list of ad and tracker domains is used.
-
-Not covered yet: YouTube's own video ads (they come from YouTube itself and
-need Brave's scriptlets), and generic hiding rules that need the page scanned.
+The shield button shows what was blocked on the page and turns Shields off for a
+site. Lists are fetched with Windows' `curl.exe` and refreshed every four days
+(Settings › Update now), kept compiled in `%LOCALAPPDATA%\Brisklark\Shields`.
 
 ## What's in it
 
 - Tabs down the left or across the top, in place of Windows' title bar
-- Pinned tabs (right-click a tab) and private tabs
+- Right-click a tab: new tab to the right, reload, duplicate, pin, mute, split
+  view, bookmark, copy link, close others / to the right
+- Split view: two tabs side by side, drag the divider; the pair is remembered
+- Speaker icon on tabs playing sound; click it to mute
+- Settings (`Ctrl+,` or ⚙): tab position, search engine, on startup, Shields,
+  clear history / cookies / cache
+- Pinned tabs and private tabs
 - One field for addresses and searches, suggesting from history, bookmarks and open tabs
 - History and bookmarks panels
 - Your session restored on launch; restored tabs aren't loaded until clicked,
@@ -45,7 +51,7 @@ empty part of the tab row to move the window; double-click it to maximise.
 |---|---|
 | `Ctrl+L` address · `Ctrl+K` switch tab · `Ctrl+T` new tab · `Ctrl+W` close · `Ctrl+Shift+T` reopen | `Ctrl+[` `Ctrl+]` back, forward · `Ctrl+Tab`, `Ctrl+Shift+[` `]` previous/next tab · `Ctrl+1`–`9` jump |
 | `Ctrl+Shift+S` tabs left/top · `Ctrl+S` hide the tabs · `Ctrl+Shift+B` bookmark | `Ctrl+D` duplicate · `Ctrl+Shift+C` copy address · `Ctrl+Shift+V` paste and go |
-| `Ctrl+Y` history · `Ctrl+Shift+O` bookmarks · `Ctrl+Shift+N` private tab | `Ctrl+F` find, `Ctrl+P` print, `F5` reload: WebView2's own |
+| `Ctrl+Y` history · `Ctrl+Shift+O` bookmarks · `Ctrl+Shift+N` private tab · `Ctrl+,` settings | `Ctrl+F` find, `Ctrl+P` print, `F5` reload: WebView2's own |
 
 ## Build
 

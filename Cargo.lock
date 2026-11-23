@@ -146,10 +146,11 @@ dependencies = [
 
 [[package]]
 name = "brisklark"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "adblock",
  "arboard",
+ "base64",
  "serde",
  "serde_json",
  "tao",
