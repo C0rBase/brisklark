@@ -4,13 +4,15 @@
 <meta charset="utf-8">
 <style>
 :root {
-  --bg: #f3f3f3; --fg: #1b1b1b; --dim: #6b6b6b; --hover: #e4e4e4; --sel: #ffffff;
-  --line: #dcdcdc; --accent: #2f6fde; --field: #ffffff; --shadow: 0 8px 30px rgba(0,0,0,.18);
+  --bg: #f4f4f5; --fg: #18181b; --dim: #71717a; --hover: rgba(0,0,0,.055); --sel: #ffffff;
+  --line: rgba(0,0,0,.09); --accent: #2563eb; --field: #ffffff; --card: #ffffff;
+  --shadow: 0 12px 40px rgba(0,0,0,.16), 0 0 0 1px rgba(0,0,0,.06);
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1f1f1f; --fg: #e8e8e8; --dim: #9a9a9a; --hover: #2c2c2c; --sel: #353535;
-    --line: #333; --accent: #6ea0ff; --field: #2a2a2a; --shadow: 0 8px 30px rgba(0,0,0,.6);
+    --bg: #1c1c1f; --fg: #ececee; --dim: #a1a1aa; --hover: rgba(255,255,255,.07); --sel: #2e2e33;
+    --line: rgba(255,255,255,.09); --accent: #5b8def; --field: #2a2a2e; --card: #26262a;
+    --shadow: 0 12px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06);
   }
 }
 * { box-sizing: border-box; }
@@ -167,6 +169,64 @@ select { font: inherit; color: var(--fg); background: var(--field); border: 1px 
 .sw:checked { background: var(--accent); }
 .sw:checked::after { left: 19px; }
 #panel a { color: var(--accent); cursor: pointer; }
+
+/* ---- polish: tabs, toolbar, field ---- */
+.row { transition: background .12s; }
+.tab { height: 34px; border-radius: 8px; }
+.tab.active { background: var(--sel); box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 0 0 1px var(--line); }
+.tab .x { width: 20px; height: 20px; border-radius: 5px; display: grid; place-items: center; line-height: 1; }
+.tab .x:hover { background: var(--hover); color: var(--fg); }
+.tab.active .x { visibility: visible; }
+.icon { border-radius: 4px; font-size: 9px; background: var(--hover); color: var(--dim); }
+img.icon { object-fit: contain; }
+#bar { gap: 4px; }
+#bar button { border-radius: 8px; font: 15px "Segoe Fluent Icons", "Segoe MDL2 Assets"; color: var(--dim); }
+#bar button.on { color: #f5b301; }
+#b-shield { color: #e8590c !important; }
+#b-shield.down { color: var(--dim) !important; }
+body.top #bar button { width: 34px; height: 32px; }
+body.top #addr { border-radius: 10px; border-color: transparent; background: var(--hover); }
+body.top #addr:hover { border-color: var(--line); background: var(--field); }
+#field { border-radius: 10px; }
+body.overlay #box, #panel { border-radius: 14px; border: 0; box-shadow: var(--shadow); }
+
+/* ---- Settings: a nav on the left, one section on the right, rows in cards ---- */
+#panel.settings { padding: 0; overflow: hidden; background: var(--bg); }
+#panel.settings #ptitle { display: none; }
+#panel.settings .sbody { gap: 0; height: 100%; }
+#panel.settings #snav { width: 232px; padding: 18px 10px; gap: 2px; border-right: 1px solid var(--line); background: var(--bg); }
+#panel.settings #snav::before { content: 'Settings'; font: 600 18px "Segoe UI Variable Display", "Segoe UI", sans-serif; padding: 4px 12px 14px; }
+#snav button { padding: 9px 12px; border-radius: 8px; color: var(--fg); }
+#snav button.on { background: var(--hover); color: var(--fg); font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
+#snav .ic { color: var(--dim); }
+#snav button.on .ic { color: var(--accent); }
+#panel.settings #plist { padding: 22px 32px 40px; }
+#plist .page { display: none; max-width: 760px; margin: 0 auto; }
+#plist .page.on { display: block; }
+#panel.settings h3 { font: 600 22px "Segoe UI Variable Display", "Segoe UI", sans-serif; margin: 6px 2px 16px; }
+#panel.settings h4 { font-size: 12px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--dim); margin: 22px 4px 8px; }
+.card { background: var(--card); border-radius: 12px; box-shadow: 0 0 0 1px var(--line); overflow: hidden; }
+.card .set { border-radius: 0; padding: 12px 16px; min-height: 56px; }
+.card .set + .set { border-top: 1px solid var(--line); }
+.set .t { font-size: 13.5px; }
+.set .hint { margin-top: 2px; font-size: 12px; }
+.seg { border-radius: 8px; background: var(--hover); border: 0; padding: 2px; gap: 2px; }
+.seg button { border-radius: 6px; padding: 5px 12px; }
+.seg button + button { border-left: 0; }
+.seg button.on { background: var(--card); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.15); font-weight: 600; }
+.btn { border-radius: 8px; padding: 6px 14px; background: var(--card); }
+.txt, #plist select { border-radius: 8px; height: 32px; }
+.sw { width: 40px; height: 22px; border-radius: 11px; background: var(--dim); opacity: .55; cursor: pointer; }
+.sw:checked { opacity: 1; }
+.sw::after { width: 16px; height: 16px; top: 3px; left: 3px; transition: left .15s; }
+.sw:checked::after { left: 21px; }
+.about { display: flex; gap: 14px; align-items: flex-start; padding: 16px; }
+.about .name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+#panel:focus { outline: none; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 5px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--dim); }
+::-webkit-scrollbar-track { background: transparent; }
 </style>
 </head>
 <body>
@@ -182,12 +242,8 @@ select { font: inherit; color: var(--fg); background: var(--field); border: 1px 
   <div id="pins"></div>
   <div id="tabs"></div>
   <div id="bar">
-    <button id="b-mark" title="Bookmark this page (Ctrl+Shift+B)">☆</button>
-    <button id="b-bookmarks" title="Bookmarks (Ctrl+Shift+O)">▤</button>
-    <button id="b-history" title="History (Ctrl+Y)">◷</button>
-    <button id="b-layout" title="Tabs on the left or across the top (Ctrl+Shift+S)">⇆</button>
+    <button id="b-mark" class="g" title="Bookmark this page (Ctrl+Shift+B)">&#xE734;</button>
     <button id="b-shield" class="g" title="Shields"></button>
-    <button id="b-settings" class="g" title="Settings (Ctrl+,)">&#xE713;</button>
     <button id="b-ext" class="g" title="Extensions">&#xEA86;</button>
     <button id="b-menu" class="g" title="Menu (Alt+F)">&#xE712;</button>
   </div>
@@ -201,12 +257,16 @@ let S = { tabs: [] }, mode = 'here', items = [], sel = 0, panelKind = null, fini
 
 const hostOf = u => { try { return new URL(u).host; } catch { return ''; } };
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+// The page's own favicon when the app knows it, else the site's /favicon.ico;
+// one that failed once is not asked for again (no flicker on every render).
+const badIcons = new Set();
 function icon(t) {
-  const letter = el('span', 'icon', ((t.title || hostOf(t.url) || '?').replace(/^www\./, '')[0] || '?').toUpperCase());
+  const letter = el('span', 'icon', ((hostOf(t.url) || t.title || '?').replace(/^www\./, '')[0] || '?').toUpperCase());
   const h = hostOf(t.url);
-  if (t.private || !/^https?:/.test(t.url) || !h) return letter;
-  const img = el('img', 'icon'); img.src = `https://${h}/favicon.ico`;
-  img.onerror = () => img.replaceWith(letter);
+  const src = t.icon && /^(https?|data):/.test(t.icon) ? t.icon : !t.private && /^https?:/.test(t.url) && h ? `https://${h}/favicon.ico` : '';
+  if (!src || badIcons.has(src)) return letter;
+  const img = el('img', 'icon'); img.decoding = 'async'; img.draggable = false; img.src = src;
+  img.onerror = () => { badIcons.add(src); img.replaceWith(letter); };
   return img;
 }
 function wire(node, t) {
@@ -274,7 +334,7 @@ function render(s) {
     b.onclick = e => { e.stopPropagation(); post({ cmd: 'command', name: 'install' }); };
     addr.append(b);
   }
-  $('b-mark').textContent = s.bookmarked ? '★' : '☆';
+  $('b-mark').innerHTML = s.bookmarked ? '&#xE735;' : '&#xE734;';
   $('b-mark').classList.toggle('on', s.bookmarked);
   const sh = $('b-shield');
   sh.innerHTML = '&#xEA18;';
@@ -360,20 +420,20 @@ function panel(o) {
 }
 function closePanel() { panelKind = null; $('panel').classList.remove('open', 'settings'); body.classList.remove('panel'); }
 
-// Settings: every change applies at once and the app sends the panel back.
+// Settings: one section at a time; every change applies at once and the app
+// sends the panel back.
 let settingsAt = 'start';
 const SECTIONS = [
-  ['start', 'Get started', '&#xE80F;'], ['appearance', 'Appearance', '&#xE790;'], ['content', 'Content', '&#xE8A5;'],
-  ['shields', 'Shields', '&#xEA18;'], ['privacy', 'Privacy and security', '&#xE72E;'], ['sync', 'Sync', '&#xE895;'],
-  ['search', 'Search engine', '&#xE721;'], ['extensions', 'Extensions', '&#xEA86;'], ['autofill', 'Autofill and passwords', '&#xE8D7;'],
-  ['languages', 'Languages', '&#xF2B7;'], ['downloads', 'Downloads', '&#xE896;'], ['accessibility', 'Accessibility', '&#xE776;'],
-  ['system', 'System', '&#xE7F8;'], ['reset', 'Reset settings', '&#xE777;'], ['about', 'About Brisklark', '&#xE946;'],
+  ['start', 'General', '&#xE80F;'], ['appearance', 'Appearance', '&#xE790;'], ['shields', 'Shields', '&#xEA18;'],
+  ['privacy', 'Privacy', '&#xE72E;'], ['autofill', 'Passwords and autofill', '&#xE8D7;'], ['extensions', 'Extensions', '&#xEA86;'],
+  ['downloads', 'Downloads', '&#xE896;'], ['languages', 'Languages', '&#xF2B7;'], ['system', 'System', '&#xE7F8;'],
+  ['about', 'About Brisklark', '&#xE946;'],
 ];
 function settingsGo(key) {
   settingsAt = key;
-  const h = document.getElementById('s-' + key), list = $('plist');
-  if (h) list.scrollTop = h.offsetTop - list.offsetTop - 4;
+  for (const s of $('plist').children) s.classList.toggle('on', s.id === 's-' + key);
   for (const b of $('snav').children) b.classList.toggle('on', b.dataset.k === key);
+  $('plist').scrollTop = 0;
 }
 function settings(o) {
   panelKind = 'settings';
@@ -391,14 +451,19 @@ function settings(o) {
     nav.append(b);
   }
   const set = (key, value) => post({ cmd: 'set', key, value });
-  const sec = (key, title) => { const h = el('h3', null, title); h.id = 's-' + key; list.append(h); };
-  const note = text => { const r = el('div', 'set'); r.append(el('span', 't hint', text)); list.append(r); return r; };
+  let page, card;
+  const sec = (key, title) => {
+    page = el('section', 'page' + (key === settingsAt ? ' on' : '')); page.id = 's-' + key;
+    page.append(el('h3', null, title)); card = el('div', 'card'); page.append(card); list.append(page);
+  };
+  const sub = title => { page.append(el('h4', null, title)); card = el('div', 'card'); page.append(card); };
+  const note = text => { const r = el('div', 'set'); r.append(el('span', 't hint', text)); card.append(r); return r; };
   const row = (label, hint, control) => {
     const r = el('div', 'set'), t = el('span', 't', label);
     if (hint) t.append(el('span', 'hint', hint));
     r.append(t);
     if (control) r.append(control);
-    list.append(r); return r;
+    card.append(r); return r;
   };
   const seg = (key, value, options) => {
     const s = el('div', 'seg');
@@ -424,141 +489,114 @@ function settings(o) {
   };
   const clear = what => sure('Clear', () => set('clear', what), 'Click again to clear');
   const open = url => { closePanel(); body.classList.remove('overlay'); set('open', url); };
+  const select = (options, value, onchange) => {
+    const s = el('select');
+    for (const [v, t] of options) { const opt = el('option', null, t); opt.value = v; opt.selected = v === value; s.append(opt); }
+    s.onchange = () => onchange(s.value);
+    return s;
+  };
 
-  sec('start', 'Get started');
+  sec('start', 'General');
   row('On startup', o.startup === 'new' ? 'Pinned tabs are kept' : 'Tabs load when you click them',
-      seg('startup', o.startup, [['continue', 'Continue where I left off'], ['new', 'Open a new tab']]));
-  if (o.sources.length) {
-    const g = group(...o.sources.map((label, i) => btn(label, () => set('import', 1000 + i))));
-    row('Import bookmarks and history', 'From another browser on this PC', g);
-  } else row('Import bookmarks and history', 'No other browsers found on this PC', null);
-  row('Import from a file', 'A bookmarks .html file, as every browser exports', btn('Choose file…', () => set('import', 40)));
+      seg('startup', o.startup, [['continue', 'Continue where I left off'], ['new', 'New tab']]));
+  const known = o.engines.some(([, url]) => url === o.engine);
+  row('Search engine', 'Used in the address bar',
+      select((known ? o.engines : [...o.engines, ['Custom', o.engine]]).map(([n, u]) => [u, n]), o.engine, v => set('engine', v)));
+  sub('Import and export');
+  if (o.sources.length) row('From another browser', 'Bookmarks and history', group(...o.sources.map((label, i) => btn(label, () => set('import', 1000 + i)))));
+  row('From a file', 'A bookmarks .html file', btn('Choose file…', () => set('import', 40)));
   row('Export', o.bookmarks + ' bookmarks · ' + o.history + ' history entries',
-      group(btn('Bookmarks (.html)', () => set('import', 41), !o.bookmarks), btn('History (.csv)', () => set('import', 42), !o.history)));
+      group(btn('Bookmarks', () => set('import', 41), !o.bookmarks), btn('History', () => set('import', 42), !o.history)));
 
   sec('appearance', 'Appearance');
-  row('Tabs', 'Ctrl+Shift+S switches', seg('top', o.top, [[true, 'Across the top'], [false, 'On the left']]));
+  row('Tabs', 'Ctrl+Shift+S', seg('top', o.top, [[true, 'Top'], [false, 'Left']]));
   row('Hide the tabs', 'Ctrl+S shows them again', sw('folded', o.folded));
-  const zoom = el('select');
-  for (const z of [0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]) {
-    const opt = el('option', null, Math.round(z * 100) + '%'); opt.value = z; opt.selected = Math.abs(z - o.zoom) < 0.001; zoom.append(opt);
-  }
-  zoom.onchange = () => set('zoom', parseFloat(zoom.value));
-  row('Page zoom', 'For every page; Ctrl+plus and Ctrl+minus change one tab', zoom);
-
-  sec('content', 'Content');
-  row('Block cookie notices', 'Cookie banners and consent pop-ups', sw('cookies', o.cookies));
-  row('Pop-ups and redirects', 'Pop-ups and pop-unders to ad addresses never open; sign-in windows still do', null);
-  row('Full screen', 'F11, or a video\'s own full-screen button', null);
+  row('Page zoom', 'Ctrl+plus and Ctrl+minus change one tab',
+      select([0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2].map(z => [String(z), Math.round(z * 100) + '%']),
+             String([0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2].find(z => Math.abs(z - o.zoom) < 0.001) ?? 1), v => set('zoom', parseFloat(v))));
 
   sec('shields', 'Shields');
-  row('Block ads and trackers', 'Brave\'s lists and engine', sw('shields', o.shields));
-  row('Trackers and ads blocking', 'Aggressive also blocks first-party ads, as Brave\'s Aggressive mode',
+  row('Block ads and trackers', 'Brave\'s engine and lists', sw('shields', o.shields));
+  row('Blocking level', 'Aggressive also blocks a site\'s own ads',
       (() => { const s = el('div', 'seg');
         for (const [v, t] of [[false, 'Standard'], [true, 'Aggressive']]) { const b = el('button', v === o.prefs.aggressive ? 'on' : '', t); b.onclick = () => set('pref', { name: 'aggressive', on: v }); s.append(b); }
         return s; })());
-  row('Block fingerprinting', 'Pages see slightly different canvas, audio and hardware details each session', pref('fingerprint'));
-  row('Upgrade connections to HTTPS', 'Falls back to http when a site has no https', pref('https'));
-  row('Remove tracking from links', 'Strips parameters like fbclid and utm_source', pref('query'));
-  row('Skip tracking redirects', 'Goes straight to where a tracking link leads', pref('debounce'));
-  row('Send Global Privacy Control', 'Tells sites not to sell or share your data', pref('gpc'));
+  row('Block cookie notices', 'Consent banners and pop-ups', sw('cookies', o.cookies));
+  row('Block fingerprinting', 'Canvas, audio and hardware details vary per session', pref('fingerprint'));
+  row('Upgrade to HTTPS', 'Falls back to http when a site has no https', pref('https'));
+  row('Remove tracking from links', 'fbclid, utm_source and the like', pref('query'));
+  row('Skip tracking redirects', 'Goes straight to where a link leads', pref('debounce'));
+  row('Send Global Privacy Control', 'Asks sites not to sell or share your data', pref('gpc'));
   const when = o.updating ? 'Updating…' : o.updated ? 'Updated ' + new Date(o.updated * 1000).toLocaleString() : 'Not downloaded yet';
   row('Filter lists', when + ' · refreshed every 4 days', btn('Update now', () => set('update', true), o.updating));
-  const regional = o.lists.filter(l => l.regional), extra = o.lists.filter(l => !l.regional);
   const listRows = (title, items) => {
     if (!items.length) return;
-    list.append(el('h4', null, title));
+    sub(title);
     for (const l of items) row(l.title, l.desc, toggle(l.on, v => set('list', { uuid: l.uuid, on: v })));
   };
-  listRows('Optional lists', extra);
-  listRows('Regional lists', regional);
+  listRows('Optional lists', o.lists.filter(l => !l.regional));
+  listRows('Regional lists', o.lists.filter(l => l.regional));
   if (o.off.length) {
-    list.append(el('h4', null, 'Sites with Shields down'));
+    sub('Sites with Shields down');
     for (const h of o.off) row(h, null, btn('Remove', () => set('unshield', h)));
   }
 
-  sec('privacy', 'Privacy and security');
-  row('Browsing history', 'Brisklark\'s history and closed tabs', clear('history'));
+  sec('privacy', 'Privacy');
+  row('Browsing history', 'History and recently closed tabs', clear('history'));
   row('Cookies and site data', 'Signs you out of websites', clear('cookies'));
   row('Cached images and files', 'Pages may load slower once', clear('cache'));
   row('Private tabs', 'Ctrl+Shift+N · nothing is kept when they close', null);
-  row('Fingerprinting, HTTPS and tracking protection', 'In Shields, above', btn('Go to Shields', () => settingsGo('shields')));
 
-  sec('sync', 'Sync');
-  note('Brisklark has no account and keeps nothing on a server, so there is no sync. To move your bookmarks and history to another PC, export them here and import them there.');
-  row('Move your data', null, group(btn('Export bookmarks', () => set('import', 41), !o.bookmarks), btn('Import…', () => settingsGo('start'))));
-
-  sec('search', 'Search engine');
-  const pick = el('select');
-  const known = o.engines.some(([, url]) => url === o.engine);
-  for (const [name, url] of known ? o.engines : [...o.engines, ['Custom', o.engine]]) {
-    const opt = el('option', null, name); opt.value = url; opt.selected = url === o.engine; pick.append(opt);
-  }
-  pick.onchange = () => set('engine', pick.value);
-  row('Search engine used in the address bar', 'When what you type isn\'t an address', pick);
+  sec('autofill', 'Passwords and autofill');
+  row('Offer to save passwords', null, sw('passwords', o.passwords));
+  row('Save and fill addresses and forms', 'Names, addresses, phone numbers', sw('autofill', o.autofill));
+  row('Remove saved passwords and forms', 'Cleared with cookies and site data', btn('Privacy', () => settingsGo('privacy')));
 
   sec('extensions', 'Extensions');
-  if (!o.extsOk) note('The WebView2 runtime on this PC is too old to run extensions. Update Microsoft Edge WebView2 to use them.');
-  const link = el('input', 'txt'); link.placeholder = 'Paste a Chrome Web Store link'; link.spellcheck = false;
+  if (!o.extsOk) note('This PC\'s WebView2 runtime is too old for extensions. Update Microsoft Edge WebView2 to use them.');
+  const link = el('input', 'txt'); link.placeholder = 'Chrome Web Store link'; link.spellcheck = false;
   link.onkeydown = e => { if (e.key === 'Enter') set('ext-install', link.value); };
-  row('Install from the Chrome Web Store', o.installing ? 'Installing…' : 'Or open the extension\'s page and press Add to Brisklark',
+  row('Install', o.installing ? 'Installing…' : 'Or open an extension\'s page and press Add to Brisklark',
       group(link, btn('Install', () => set('ext-install', link.value), o.installing || !o.extsOk)));
-  row('Find extensions', null, group(btn('Open the Chrome Web Store', () => open('https://chromewebstore.google.com/')),
+  row('Find extensions', null, group(btn('Chrome Web Store', () => open('https://chromewebstore.google.com/')),
       btn('Load unpacked…', () => set('ext-unpacked', true), !o.extsOk)));
-  if (!o.exts.length) note('No extensions installed.');
+  sub('Installed');
+  if (!o.exts.length) note('No extensions yet.');
   for (const x of o.exts) {
     const g = group();
     if (x.popup || x.options) g.append(btn('Open', () => { closePanel(); body.classList.remove('overlay'); set('ext-open', x.id); }));
     if (x.options) g.append(btn('Options', () => { closePanel(); body.classList.remove('overlay'); set('ext-options', x.id); }));
     g.append(sure('Remove', () => set('ext-remove', x.id)), toggle(x.enabled, v => set('ext-enable', { id: x.id, on: v })));
-    row(x.name, x.id, g);
+    row(x.name, null, g);
   }
-  note('Extensions run as in Microsoft Edge. Their pages open from the ⋯ menu or the puzzle button; some extensions need features WebView2 doesn\'t have.');
-
-  sec('autofill', 'Autofill and passwords');
-  row('Offer to save passwords', 'Signs you in to sites with what you saved', sw('passwords', o.passwords));
-  row('Save and fill addresses and forms', 'Names, addresses, phone numbers', sw('autofill', o.autofill));
-  row('Saved passwords and forms', 'Remove them with cookies and site data', btn('Go to Privacy', () => settingsGo('privacy')));
-
-  sec('languages', 'Languages');
-  const lang = el('select');
-  for (const [v, t] of [['', 'Same as Windows (' + navigator.language + ')'], ['en-US', 'English (US)'], ['en-GB', 'English (UK)'], ['af', 'Afrikaans'], ['de', 'Deutsch'], ['es', 'Español'], ['fr', 'Français'], ['it', 'Italiano'], ['nl', 'Nederlands'], ['pt-BR', 'Português (Brasil)'], ['pl', 'Polski'], ['tr', 'Türkçe'], ['ru', 'Русский'], ['ar', 'العربية'], ['hi', 'हिन्दी'], ['ja', '日本語'], ['ko', '한국어'], ['zh-CN', '中文 (简体)']]) {
-    const opt = el('option', null, t); opt.value = v; opt.selected = v === o.language; lang.append(opt);
-  }
-  lang.onchange = () => set('language', lang.value);
-  row('Preferred language', 'Websites show this language when they can · applies after a relaunch', lang);
 
   sec('downloads', 'Downloads');
   row('Location', o.downloads || 'Downloads', btn('Change…', () => set('downloads', true)));
   row('Show downloads', 'Ctrl+J', btn('Open', () => set('show-downloads', true)));
 
-  sec('accessibility', 'Accessibility');
-  row('Page zoom', 'In Appearance', btn('Go to Appearance', () => settingsGo('appearance')));
-  row('Captions, contrast, text size and narrator', 'Windows\' own settings apply to Brisklark too', btn('Open Windows settings', () => set('winsettings', 'easeofaccess')));
+  sec('languages', 'Languages');
+  row('Preferred language', 'Websites use it when they can · after a relaunch',
+      select([['', 'Same as Windows (' + navigator.language + ')'], ['en-US', 'English (US)'], ['en-GB', 'English (UK)'], ['af', 'Afrikaans'], ['de', 'Deutsch'], ['es', 'Español'], ['fr', 'Français'], ['it', 'Italiano'], ['nl', 'Nederlands'], ['pt-BR', 'Português (Brasil)'], ['pl', 'Polski'], ['tr', 'Türkçe'], ['ru', 'Русский'], ['ar', 'العربية'], ['hi', 'हिन्दी'], ['ja', '日本語'], ['ko', '한국어'], ['zh-CN', '中文 (简体)']],
+             o.language, v => set('language', v)));
 
   sec('system', 'System');
-  row('Use graphics acceleration when available', 'Turn off if pages flicker or show black · applies after a relaunch', sw('gpu', o.gpu));
-  row('Proxy', 'Brisklark uses Windows\' proxy settings', btn('Open Windows settings', () => set('winsettings', 'network-proxy')));
+  row('Graphics acceleration', 'Turn off if pages flicker · after a relaunch', sw('gpu', o.gpu));
+  row('Proxy', 'Windows\' proxy settings apply', btn('Open', () => set('winsettings', 'network-proxy')));
+  row('Accessibility', 'Windows\' text size, contrast and captions apply', btn('Open', () => set('winsettings', 'easeofaccess')));
   row('Relaunch Brisklark', 'Your tabs come back', btn('Relaunch', () => set('relaunch', true)));
-
-  sec('reset', 'Reset settings');
-  row('Restore settings to their original defaults', 'Keeps your tabs, bookmarks, history and extensions', sure('Reset', () => set('reset', true)));
+  row('Reset settings', 'Keeps tabs, bookmarks, history and extensions', sure('Reset', () => set('reset', true)));
 
   sec('about', 'About Brisklark');
-  const about = el('span', 't', 'Brisklark ' + o.version + ' · MIT licence · ');
+  const logo = el('div', 'about');
   const src = el('a', null, 'Source code');
   src.onclick = () => open('https://github.com/Voltexs/brisklark');
-  about.append(src, el('span', 'hint', 'Based on Search by Office Commun (MIT). Ad blocking: Brave\'s adblock-rust (MPL-2.0). Filter lists by uBlock Origin, EasyList, Brave and others, under their own licences.'));
-  const r = el('div', 'set'); r.append(about); list.append(r);
-  list.append(el('div', 'spacer'));
+  const txt = el('div');
+  txt.append(el('div', 'name', 'Brisklark ' + o.version), el('div', 'hint', 'MIT licence · '), el('div', 'hint',
+    'Based on Search by Office Commun (MIT). Ad blocking: Brave\'s adblock-rust (MPL-2.0); filter lists by uBlock Origin, EasyList, Brave and others, under their own licences.'));
+  txt.children[1].append(src);
+  logo.append(txt); card.append(logo);
 
   if (fresh) settingsGo(settingsAt); else list.scrollTop = keep;
-  list.onscroll = () => {
-    let cur = SECTIONS[0][0];
-    for (const [k] of SECTIONS) { const h = document.getElementById('s-' + k); if (h && h.offsetTop - list.offsetTop <= list.scrollTop + 40) cur = k; }
-    settingsAt = cur;
-    for (const b of nav.children) b.classList.toggle('on', b.dataset.k === cur);
-  };
   if (!p.contains(document.activeElement)) { p.tabIndex = -1; p.focus(); }
 }
 pq.oninput = () => post({ cmd: 'panel', kind: panelKind, q: pq.value });
@@ -586,11 +624,7 @@ $('w-max').onclick = () => post({ cmd: 'maximize' });
 $('w-close').onclick = () => post({ cmd: 'quit' });
 
 $('b-mark').onclick = () => post({ cmd: 'command', name: 'bookmark' });
-$('b-history').onclick = () => post({ cmd: 'command', name: 'history' });
-$('b-bookmarks').onclick = () => post({ cmd: 'command', name: 'bookmarks' });
-$('b-layout').onclick = () => post({ cmd: 'command', name: 'layout' });
 $('b-shield').onclick = () => post({ cmd: 'command', name: 'shield' });
-$('b-settings').onclick = () => post({ cmd: 'command', name: 'settings' });
 $('b-menu').onclick = () => post({ cmd: 'command', name: 'menu' });
 $('b-ext').onclick = () => post({ cmd: 'command', name: 'extensions' });
 $('n-back').onclick = () => post({ cmd: 'command', name: 'back' });

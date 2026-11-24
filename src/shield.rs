@@ -211,6 +211,9 @@ pub struct Shield {
     fellback: HashSet<String>,
     /// Random for each run: fingerprinting seeds change every session.
     session: [u64; 2],
+    /// YouTube videos (ids) whose ads are stitched into the stream: pruning them
+    /// breaks playback, so they play without scriptlets for this session.
+    stitched: HashSet<String>,
 }
 pub type Shared = Rc<RefCell<Shield>>;
 
@@ -431,8 +434,8 @@ impl Shield {
         self.on && !self.off.contains(&crate::host(page).to_ascii_lowercase())
     }
 
-    /// Brave forces Aggressive on YouTube, whose ads come from its own domain.
-    fn aggressive(&self, page: &str) -> bool {
+    /// Brave's Aggressive mode: the main lists apply to a site's own requests too.
+    fn aggressive(&self) -> bool {
         self.prefs.aggressive
     }
 
@@ -447,7 +450,7 @@ impl Shield {
         };
         let Ok(req) = Request::new(url, page, kind, method) else { return Verdict::Allow };
         let mut first = a.check_network_request_subset(&req, false, true);
-        if self.aggressive(page) || req.is_third_party {
+        if self.aggressive() || req.is_third_party {
             if first.important {
                 return verdict(&first);
             }
@@ -495,12 +498,13 @@ impl Shield {
         let rb = b.url_cosmetic_resources(url);
         let exceptions: HashSet<String> = ra.exceptions.union(&rb.exceptions).cloned().collect();
         // In Standard mode the main lists' :has() rules could hide a site's own content.
-        let strict = self.aggressive(url);
+        let strict = self.aggressive();
         let selectors: Vec<&String> = ra.hide_selectors.iter().filter(|s| strict || !s.contains(":has("))
             .chain(&rb.hide_selectors)
             .filter(|s| !exceptions.contains(*s))
             .collect();
-        let scriptlets = [ra.injected_script.as_str(), rb.injected_script.as_str()].concat();
+        let stitched = query_value(url, "v").is_some_and(|v| self.stitched.contains(&v));
+        let scriptlets = if stitched { String::new() } else { [ra.injected_script.as_str(), rb.injected_script.as_str()].concat() };
         if !scriptlets.trim().is_empty() {
             js += &format!("(function(){{{PRELUDE}\n{scriptlets}\n}})();\n");
         }
@@ -1011,11 +1015,17 @@ fn stub(data: &str) -> (Vec<u8>, String) {
 /// Puts Shields on one tab.
 const KEEP_SCRIPTS: usize = 8;
 
-/// The last line on YouTube: an ad the lists let through is muted and run to its
-/// end at once, and its skip button pressed.
-const YT_SKIP: &str = "if(window===top)(()=>{let muted=false;setInterval(()=>{const p=document.getElementById('movie_player');if(!p)return;\
-const v=p.querySelector('video');if(p.classList.contains('ad-showing')){if(v){if(!v.muted){v.muted=true;muted=true}\
-if(isFinite(v.duration)&&v.duration>0&&v.currentTime<v.duration-0.1)v.currentTime=v.duration;else v.playbackRate=16}\
+/// The last line on YouTube: an ad the lists let through is muted, played at
+/// 16x and its skip button pressed. No seeking to the end: when YouTube stitches
+/// the ad into the video's own stream, the end is the end of the video itself.
+/// A video whose player keeps reloading without playing (stitched ads the
+/// scriptlets stripped the schedule of) is reported once, to load again without them.
+const YT_SKIP: &str = "if(window===top)(()=>{let muted=false,src='',n=0,id='',told=new Set();setInterval(()=>{const p=document.getElementById('movie_player');if(!p)return;\
+const v=p.querySelector('video'),vid=new URLSearchParams(location.search).get('v')||'';if(vid!==id){id=vid;n=0}\
+if(v&&v.src&&v.src!==src){src=v.src;if(p.getPlayerState&&p.getPlayerState()!==1)n++}if(p.getPlayerState&&p.getPlayerState()===1)n=0;\
+if(n>=4&&id&&!told.has(id)&&window.chrome&&chrome.webview){told.add(id);chrome.webview.postMessage({brisklark:'stitched',v:id})}\
+if(p.classList.contains('ad-showing')){if(v){if(!v.muted){v.muted=true;muted=true}\
+v.playbackRate=16}\
 for(const b of document.querySelectorAll('.ytp-skip-ad-button,.ytp-ad-skip-button,.ytp-ad-skip-button-modern'))b.click()}\
 else if(muted&&v){v.muted=false;muted=false;if(v.playbackRate===16)v.playbackRate=1}},200)})();\n";
 
@@ -1075,7 +1085,13 @@ pub fn attach(view: &WebView, shared: Shared, page: Page) {
                     Verdict::Redirect(data) => {
                         let (body, mime) = stub(&data);
                         let stream = SHCreateMemStream(Some(&body));
-                        let headers = HSTRING::from(format!("Content-Type: {mime}\r\nAccess-Control-Allow-Origin: *"));
+                        // A credentialed request (YouTube's ad check) rejects "*": echo the origin.
+                        let mut origin = PWSTR::null();
+                        let cors = match req.Headers()?.GetHeader(w!("Origin"), &mut origin) {
+                            Ok(()) => format!("Access-Control-Allow-Origin: {}\r\nAccess-Control-Allow-Credentials: true\r\nVary: Origin", take_pwstr(origin)),
+                            Err(_) => "Access-Control-Allow-Origin: *".into(),
+                        };
+                        let headers = HSTRING::from(format!("Content-Type: {mime}\r\n{cors}"));
                         Some(env.CreateWebResourceResponse(stream.as_ref(), 200, w!("OK"), &headers)?)
                     }
                 };
@@ -1098,7 +1114,7 @@ pub fn attach(view: &WebView, shared: Shared, page: Page) {
             let headers = req.Headers()?;
             let has = |name: windows::core::PCWSTR| {
                 let mut b = BOOL(0);
-                unsafe { headers.Contains(name, &mut b) }.is_ok() && b.as_bool()
+                headers.Contains(name, &mut b).is_ok() && b.as_bool()
             };
             if has(w!("X-Client-Data")) {
                 let _ = headers.RemoveHeader(w!("X-Client-Data"));
@@ -1120,6 +1136,7 @@ pub fn attach(view: &WebView, shared: Shared, page: Page) {
 
         // Each page gets its own site's rules and scriptlets, swapped in as it
         // starts; trackers' redirects and parameters are dealt with first.
+        let cached = scripts.clone();
         let (shield, p) = (shared.clone(), page.clone());
         let starting = NavigationStartingEventHandler::create(Box::new(move |sender, args| {
             let (Some(core), Some(args)) = (sender, args) else { return Ok(()) };
@@ -1243,6 +1260,28 @@ pub fn attach(view: &WebView, shared: Shared, page: Page) {
             let mut json = PWSTR::null();
             args.WebMessageAsJson(&mut json)?;
             let Ok(m) = serde_json::from_str::<serde_json::Value>(&take_pwstr(json)) else { return Ok(()) };
+            // YT_SKIP saw the player reload a video over and over: its ads are
+            // stitched in, so it gets one more try without the scriptlets.
+            if m["brisklark"] == "stitched" {
+                if let Some(v) = m["v"].as_str().filter(|v| v.len() <= 16 && v.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')) {
+                    if shield.borrow_mut().stitched.insert(v.to_string()) {
+                        // The site's registered script still has the scriptlets: drop it
+                        // first, or the reload runs it beside the new one.
+                        let host = crate::host(&p.url.borrow()).to_ascii_lowercase();
+                        let gone: Vec<String> = {
+                            let mut list = cached.borrow_mut();
+                            let (gone, keep) = list.drain(..).partition(|e: &Cached| e.host == host);
+                            *list = keep;
+                            gone.into_iter().filter_map(|e| e.id).collect()
+                        };
+                        for id in gone {
+                            let _ = core.RemoveScriptToExecuteOnDocumentCreated(&HSTRING::from(id));
+                        }
+                        let _ = core.Reload();
+                    }
+                }
+                return Ok(());
+            }
             if m["brisklark"] != "cosmetic" {
                 return Ok(());
             }

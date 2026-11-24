@@ -22,13 +22,13 @@ use tao::{
     dpi::LogicalSize,
     event::{ElementState, Event, MouseButton, StartCause, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy},
-    platform::windows::{WindowBuilderExtWindows, WindowExtWindows},
-    window::{CursorIcon, Fullscreen, ResizeDirection, Theme, Window, WindowBuilder},
+    platform::windows::{IconExtWindows, WindowBuilderExtWindows, WindowExtWindows},
+    window::{CursorIcon, Fullscreen, Icon, ResizeDirection, Theme, Window, WindowBuilder},
 };
 use menu::M;
 use webview2_com::{
-    AcceleratorKeyPressedEventHandler, ClearBrowsingDataCompletedHandler, ContainsFullScreenElementChangedEventHandler,
-    FocusChangedEventHandler, ShowSaveAsUICompletedHandler,
+    take_pwstr, AcceleratorKeyPressedEventHandler, ClearBrowsingDataCompletedHandler, ContainsFullScreenElementChangedEventHandler,
+    FaviconChangedEventHandler, FocusChangedEventHandler, ShowSaveAsUICompletedHandler,
     IsDocumentPlayingAudioChangedEventHandler, IsMutedChangedEventHandler, Microsoft::Web::WebView2::Win32::*,
 };
 use windows::{
@@ -289,6 +289,7 @@ enum Ev {
     Open(String, bool),
     Shield(Option<shield::Compiled>), // fresh lists (None: download failed)
     Audio(u32, bool, bool),                 // playing, muted
+    Icon(u32, String),                      // the page's favicon address
     Focused(u32),
     Ubo(String), // uBO's scriptlets, read by the hidden page
     PageFull(bool), // a page went full screen (a video's own button) or left it
@@ -309,11 +310,13 @@ struct Tab {
     muted: bool,
     partner: Option<u32>, // the other half of its split view
     loading: bool,
+    icon: String, // favicon address, as the page declares it
 }
 
 /// Sound and focus, per tab: the speaker icon, and which half of a split view has the keys.
 fn hook_tab(view: &WebView, id: u32, proxy: EventLoopProxy<Ev>) {
     let focus = proxy.clone();
+    let icon = proxy.clone();
     // A video's own full-screen button: the window goes full screen with it.
     let full = proxy.clone();
     unsafe {
@@ -350,6 +353,20 @@ fn hook_tab(view: &WebView, id: u32, proxy: EventLoopProxy<Ev>) {
                 &mut token,
             );
             let _ = c.add_IsMutedChanged(&IsMutedChangedEventHandler::create(Box::new(move |w, _| send(w))), &mut token);
+        }
+        if let Ok(c) = view.webview().cast::<ICoreWebView2_15>() {
+            let icon = icon.clone();
+            let _ = c.add_FaviconChanged(
+                &FaviconChangedEventHandler::create(Box::new(move |w, _| {
+                    if let Some(w) = w.and_then(|w| w.cast::<ICoreWebView2_15>().ok()) {
+                        let mut uri = PWSTR::null();
+                        w.FaviconUri(&mut uri)?;
+                        let _ = icon.send_event(Ev::Icon(id, take_pwstr(uri)));
+                    }
+                    Ok(())
+                })),
+                &mut token,
+            );
         }
         let _ = view.controller().add_GotFocus(
             &FocusChangedEventHandler::create(Box::new(move |_, _| {
@@ -495,7 +512,8 @@ impl App {
             .with_incognito(private)
             .with_bounds(self.page_rect())
             .with_visible(false)
-            .with_browser_accelerator_keys(true) // keeps Ctrl+F, Ctrl+P, F5, Alt+arrows
+            .with_browser_accelerator_keys(true) // keeps Ctrl+F, Ctrl+P, F5, F12, Alt+arrows
+            .with_devtools(true)
             .with_document_title_changed_handler(move |t| {
                 let _ = p1.send_event(Ev::Title(id, t));
             })
@@ -561,7 +579,7 @@ impl App {
         let title = if url == BLANK { "New Tab".into() } else { url.clone() };
         let tab = Tab {
             id, title, url, pinned: false, private, view: None,
-            page: Default::default(), audio: false, muted: false, partner: None, loading: false,
+            page: Default::default(), audio: false, muted: false, partner: None, loading: false, icon: String::new(),
         };
         let pins = self.tabs.iter().filter(|t| t.pinned).count();
         let at = at.unwrap_or(self.tabs.len()).clamp(pins, self.tabs.len());
@@ -630,7 +648,7 @@ impl App {
             .map(|t| json!({"id": t.id, "title": t.title, "url": t.url, "pinned": t.pinned,
                             "private": t.private, "active": Some(t.id) == self.active,
                             "shown": self.shown.contains(&t.id), "split": t.partner.is_some(),
-                            "audio": t.audio, "muted": t.muted}))
+                            "audio": t.audio, "muted": t.muted, "icon": t.icon}))
             .collect();
         let url = self.current().map(|t| t.url.as_str()).unwrap_or("");
         let marked = self.state.bookmarks.iter().any(|b| b.url == url);
@@ -1257,6 +1275,9 @@ impl App {
             M::Item(8, "Find on page…\tCtrl+F".into(), live),
             M::Item(9, "Save page as…".into(), live),
             M::Sep,
+            M::Check(13, "Tabs across the top\tCtrl+Shift+S".into(), self.state.top, true),
+            M::Item(12, "Developer tools\tF12".into(), live),
+            M::Sep,
             M::Item(10, "Settings\tCtrl+,".into(), true),
             M::Item(11, "Exit".into(), true),
         ];
@@ -1288,6 +1309,12 @@ impl App {
                 }
             }
             10 => self.command(Cmd::Settings),
+            12 => {
+                if let Some(v) = self.current().and_then(|t| t.view.as_ref()) {
+                    v.open_devtools();
+                }
+            }
+            13 => self.command(Cmd::Layout),
             11 => self.quit = true,
             30 => self.set_zoom(1),
             31 => self.set_zoom(-1),
@@ -1724,6 +1751,12 @@ impl App {
                 }
                 self.settings(false);
             }
+            Ev::Icon(id, uri) => {
+                if let Some(i) = self.idx(id) {
+                    self.tabs[i].icon = uri;
+                    self.render();
+                }
+            }
             Ev::Audio(id, playing, muted) => {
                 if let Some(i) = self.idx(id) {
                     (self.tabs[i].audio, self.tabs[i].muted) = (playing, muted);
@@ -1807,6 +1840,13 @@ fn browser_args(s: &State) -> String {
     if !lang.is_empty() && lang.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-') {
         args += &format!(" --lang={lang} --accept-lang={lang}");
     }
+    // For development: DevTools protocol on this port (WebView2 ignores
+    // WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS once the app passes its own).
+    if let Ok(port) = std::env::var("BRISKLARK_DEBUG_PORT") {
+        if !port.is_empty() && port.bytes().all(|b| b.is_ascii_digit()) {
+            args += &format!(" --remote-debugging-port={port}");
+        }
+    }
     args
 }
 
@@ -1847,6 +1887,8 @@ fn main() {
         // shadow and the invisible borders to resize by.
         .with_decorations(false)
         .with_undecorated_shadow(true)
+        .with_window_icon(Icon::from_resource(1, None).ok())
+        .with_taskbar_icon(Icon::from_resource(1, None).ok())
         .build(&event_loop)
         .expect("window");
     paint(&window, window.theme());
