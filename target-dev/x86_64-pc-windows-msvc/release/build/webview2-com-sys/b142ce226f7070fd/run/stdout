@@ -1,0 +1,2 @@
+cargo:rustc-link-search=native=C:\Users\Janco\Desktop\Codes\Drafts\brisklark\target-dev\x86_64-pc-windows-msvc\release\build\webview2-com-sys/b142ce226f7070fd\out\x64
+cargo:rustc-link-lib=advapi32

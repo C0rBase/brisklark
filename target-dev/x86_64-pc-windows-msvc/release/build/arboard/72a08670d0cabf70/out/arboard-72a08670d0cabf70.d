@@ -1,0 +1,10 @@
+C:\Users\Janco\Desktop\Codes\Drafts\brisklark\target-dev\x86_64-pc-windows-msvc\release\build\arboard/72a08670d0cabf70\out\arboard-72a08670d0cabf70.d: C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\lib.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\common.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\platform\mod.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\platform\windows.rs
+
+C:\Users\Janco\Desktop\Codes\Drafts\brisklark\target-dev\x86_64-pc-windows-msvc\release\build\arboard/72a08670d0cabf70\out\libarboard-72a08670d0cabf70.rlib: C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\lib.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\common.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\platform\mod.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\platform\windows.rs
+
+C:\Users\Janco\Desktop\Codes\Drafts\brisklark\target-dev\x86_64-pc-windows-msvc\release\build\arboard/72a08670d0cabf70\out\libarboard-72a08670d0cabf70.rmeta: C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\lib.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\common.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\platform\mod.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\platform\windows.rs
+
+C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\lib.rs:
+C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\common.rs:
+C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\platform\mod.rs:
+C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\arboard-3.7.0\src\platform\windows.rs:

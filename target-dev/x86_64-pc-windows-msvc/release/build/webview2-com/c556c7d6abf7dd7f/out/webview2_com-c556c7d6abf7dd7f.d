@@ -1,0 +1,10 @@
+C:\Users\Janco\Desktop\Codes\Drafts\brisklark\target-dev\x86_64-pc-windows-msvc\release\build\webview2-com/c556c7d6abf7dd7f\out\webview2_com-c556c7d6abf7dd7f.d: C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\lib.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\callback.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\options.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\pwstr.rs
+
+C:\Users\Janco\Desktop\Codes\Drafts\brisklark\target-dev\x86_64-pc-windows-msvc\release\build\webview2-com/c556c7d6abf7dd7f\out\libwebview2_com-c556c7d6abf7dd7f.rlib: C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\lib.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\callback.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\options.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\pwstr.rs
+
+C:\Users\Janco\Desktop\Codes\Drafts\brisklark\target-dev\x86_64-pc-windows-msvc\release\build\webview2-com/c556c7d6abf7dd7f\out\libwebview2_com-c556c7d6abf7dd7f.rmeta: C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\lib.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\callback.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\options.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\pwstr.rs
+
+C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\lib.rs:
+C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\callback.rs:
+C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\options.rs:
+C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-0.39.1\src\pwstr.rs:

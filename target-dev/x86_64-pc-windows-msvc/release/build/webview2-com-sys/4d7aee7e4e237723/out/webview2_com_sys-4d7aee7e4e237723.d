@@ -1,0 +1,9 @@
+C:\Users\Janco\Desktop\Codes\Drafts\brisklark\target-dev\x86_64-pc-windows-msvc\release\build\webview2-com-sys/4d7aee7e4e237723\out\webview2_com_sys-4d7aee7e4e237723.d: C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-sys-0.39.1\src\lib.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-sys-0.39.1\src\declared_interfaces.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-sys-0.39.1\src\bindings.rs
+
+C:\Users\Janco\Desktop\Codes\Drafts\brisklark\target-dev\x86_64-pc-windows-msvc\release\build\webview2-com-sys/4d7aee7e4e237723\out\libwebview2_com_sys-4d7aee7e4e237723.rlib: C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-sys-0.39.1\src\lib.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-sys-0.39.1\src\declared_interfaces.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-sys-0.39.1\src\bindings.rs
+
+C:\Users\Janco\Desktop\Codes\Drafts\brisklark\target-dev\x86_64-pc-windows-msvc\release\build\webview2-com-sys/4d7aee7e4e237723\out\libwebview2_com_sys-4d7aee7e4e237723.rmeta: C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-sys-0.39.1\src\lib.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-sys-0.39.1\src\declared_interfaces.rs C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-sys-0.39.1\src\bindings.rs
+
+C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-sys-0.39.1\src\lib.rs:
+C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-sys-0.39.1\src\declared_interfaces.rs:
+C:\Users\Janco\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\webview2-com-sys-0.39.1\src\bindings.rs:

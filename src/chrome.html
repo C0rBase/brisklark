@@ -46,17 +46,43 @@ img.icon { background: none; }
 #bar button.on { color: var(--accent); }
 
 /* minimize, maximize, close: in place of Windows' title bar */
-#win { display: flex; justify-content: flex-end; margin: -8px -8px 0; flex: none; }
+#win { display: flex; justify-content: flex-end; margin: -8px -8px 0; flex: none; min-height: 32px; }
 #win button { width: 46px; height: 32px; border: 0; background: none; color: var(--fg);
   font: 10px "Segoe Fluent Icons", "Segoe MDL2 Assets"; }
 #win button:hover { background: var(--hover); }
 #win #w-close:hover { background: #c42b1c; color: #fff; }
-body.top #win { order: 9; margin: -6px -8px -6px 4px; align-self: stretch; }
-body.top #win button { height: 44px; }
+body.top #win { margin: 0 -8px 0 4px; align-self: start; }
+body.top #win button { height: 34px; }
 body.overlay.folded #win { display: none; }
 
-/* tabs across the top */
-body.top #side { flex-direction: row; align-items: center; padding: 6px 8px; height: 44px; }
+/* back, forward, reload: in the window-button row on the left, or the toolbar on top */
+#side { position: relative; }
+#nav { display: flex; gap: 2px; flex: none; position: absolute; top: 2px; left: 6px; z-index: 1; }
+#nav button, #b-menu { width: 30px; height: 28px; border: 0; border-radius: 6px; background: none; color: var(--fg);
+  font: 13px "Segoe Fluent Icons", "Segoe MDL2 Assets"; display: grid; place-items: center; padding: 0; }
+#nav button:hover:not(:disabled), #b-menu:hover { background: var(--hover); }
+#nav button:disabled { color: var(--dim); opacity: .45; }
+#addr { display: none; }
+body.overlay.folded #nav { display: none; }
+
+/* tabs across the top: a row of tabs from the left edge, and a toolbar under it, as in Chrome */
+body.top #side { display: flex; flex-flow: row wrap; align-content: flex-start; align-items: center; gap: 0 6px;
+  padding: 0 0 0 8px; height: 78px; }
+body.top #side::before { content: ''; order: 4; flex-basis: 100%; height: 0; } /* the line break between the rows */
+body.top #pins { order: 1; height: 38px; align-items: center; }
+body.top #pins:empty { display: none; }
+body.top #tabs { order: 2; flex: 1 1 0; min-width: 0; height: 38px; align-items: center; }
+body.top #win { order: 3; }
+body.top #nav { order: 5; position: static; height: 40px; align-items: center; }
+body.top #addr { order: 6; flex: 1 1 0; display: flex; align-items: center; gap: 8px; height: 32px; min-width: 0;
+  padding: 0 12px; border-radius: 16px; background: var(--field); border: 1px solid var(--line); cursor: text; }
+body.top #addr:hover { border-color: var(--dim); }
+#addr .lock { font: 11px "Segoe Fluent Icons", "Segoe MDL2 Assets"; color: var(--dim); flex: none; }
+#addr .u { flex: 1; max-width: none; font-size: 13px; color: var(--fg); }
+#addr .u .h { color: var(--fg); } #addr .u .p { color: var(--dim); }
+body.top #bar { order: 7; height: 40px; align-items: center; padding-right: 8px; }
+body.overlay.folded #addr { display: none; }
+/* old one-row top bar, kept for what still applies */
 body.top #box { display: none; }
 body.top #pins { display: flex; flex: none; }
 body.top .pin { width: 32px; height: 30px; }
@@ -86,7 +112,25 @@ body.overlay.panel #box { display: none; }
 #panel h2 { font-size: 14px; margin: 2px 4px 8px; }
 #pq { width: 100%; height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px;
   background: var(--field); color: var(--fg); font: inherit; outline: none; margin-bottom: 6px; }
-#plist { overflow-y: auto; }
+#plist { overflow-y: auto; flex: 1; min-width: 0; }
+.sbody { display: flex; gap: 14px; min-height: 0; flex: 1 1 auto; }
+#snav { display: none; }
+#panel.settings { width: min(1000px, 94vw); height: 84vh; max-height: 84vh; top: 7vh; }
+#panel.settings #snav { display: flex; flex-direction: column; gap: 1px; width: 220px; flex: none; overflow-y: auto; }
+#snav button { display: flex; align-items: center; gap: 10px; text-align: left; border: 0; background: none; color: var(--fg);
+  font: inherit; padding: 8px 10px; border-radius: 7px; }
+#snav button:hover { background: var(--hover); }
+#snav button.on { background: var(--hover); color: var(--accent); font-weight: 600; }
+#snav .ic { font: 14px "Segoe Fluent Icons", "Segoe MDL2 Assets"; width: 16px; text-align: center; }
+#panel.settings h3 { font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--fg); margin: 22px 8px 6px; }
+#panel h4 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--dim); margin: 14px 8px 4px; }
+.set > .t { flex: 1; min-width: 0; }
+.grp { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; flex: none; max-width: 60%; }
+.txt { height: 30px; width: 260px; border: 1px solid var(--line); border-radius: 7px; padding: 0 10px; background: var(--field); color: var(--fg); font: inherit; }
+#plist select { height: 30px; border: 1px solid var(--line); border-radius: 7px; background: var(--field); color: var(--fg); font: inherit; padding: 0 6px; max-width: 260px; }
+.spacer { height: 60vh; }
+#addr .store { flex: none; border: 0; border-radius: 12px; padding: 3px 10px; background: var(--accent); color: #fff; font: 12px inherit; cursor: pointer; }
+#addr .store:disabled { opacity: .6; }
 
 /* glyphs from Windows' own icon font */
 .g { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets" !important; }
@@ -130,6 +174,10 @@ select { font: inherit; color: var(--fg); background: var(--field); border: 1px 
   <div id="win">
     <button id="w-min" title="Minimize">&#xE921;</button><button id="w-max" title="Maximize">&#xE922;</button><button id="w-close" title="Close">&#xE8BB;</button>
   </div>
+  <div id="nav">
+    <button id="n-back" title="Back (Alt+Left)">&#xE72B;</button><button id="n-fwd" title="Forward (Alt+Right)">&#xE72A;</button><button id="n-reload" title="Reload (F5)">&#xE72C;</button>
+  </div>
+  <div id="addr" title="Search or enter address (Ctrl+L)"><span class="lock"></span><span class="t u"></span></div>
   <div id="box"><input id="field" spellcheck="false" autocomplete="off"><ul id="sugg"></ul></div>
   <div id="pins"></div>
   <div id="tabs"></div>
@@ -140,9 +188,11 @@ select { font: inherit; color: var(--fg); background: var(--field); border: 1px 
     <button id="b-layout" title="Tabs on the left or across the top (Ctrl+Shift+S)">⇆</button>
     <button id="b-shield" class="g" title="Shields"></button>
     <button id="b-settings" class="g" title="Settings (Ctrl+,)">&#xE713;</button>
+    <button id="b-ext" class="g" title="Extensions">&#xEA86;</button>
+    <button id="b-menu" class="g" title="Menu (Alt+F)">&#xE712;</button>
   </div>
 </div>
-<div id="panel"><h2 id="ptitle"></h2><input id="pq" placeholder="Filter" spellcheck="false"><div id="plist"></div></div>
+<div id="panel"><h2 id="ptitle"></h2><input id="pq" placeholder="Filter" spellcheck="false"><div class="sbody"><div id="snav"></div><div id="plist"></div></div></div>
 <script>
 const $ = id => document.getElementById(id);
 const post = o => window.ipc.postMessage(JSON.stringify(o));
@@ -201,6 +251,29 @@ function render(s) {
   add.append(el('span', 'plus', '+'), el('span', 't label', 'New Tab'));
   add.onclick = () => post({ cmd: 'command', name: 'new' });
   tabs.append(add);
+  $('n-back').disabled = !s.back;
+  $('n-fwd').disabled = !s.forward;
+  const rl = $('n-reload');
+  rl.innerHTML = s.loading ? '&#xE711;' : '&#xE72C;';
+  rl.title = s.loading ? 'Stop (Esc)' : 'Reload (F5)';
+  rl.disabled = !s.live;
+  const cur = s.tabs.find(t => t.active), u = cur && cur.url !== 'about:blank' ? cur.url : '';
+  const addr = $('addr'), lock = addr.querySelector('.lock'), text = addr.querySelector('.u');
+  lock.innerHTML = /^https:/.test(u) ? '&#xE72E;' : u ? '&#xE946;' : '&#xE721;';
+  lock.title = /^https:/.test(u) ? 'Connection is secure' : u ? 'Not secure' : '';
+  text.replaceChildren();
+  if (u) {
+    let h = hostOf(u), rest = u.replace(/^[a-z]+:\/\//, '').slice(h.length);
+    if (!h) { h = u; rest = ''; }
+    text.append(el('span', 'h', h.replace(/^www\./, '')), el('span', 'p', rest === '/' ? '' : rest));
+  } else text.append(el('span', 'p', 'Search or enter address'));
+  addr.querySelector('.store')?.remove();
+  if (s.store) {
+    const b = el('button', 'store', s.installing ? 'Adding…' : 'Add to Brisklark');
+    b.disabled = !!s.installing;
+    b.onclick = e => { e.stopPropagation(); post({ cmd: 'command', name: 'install' }); };
+    addr.append(b);
+  }
   $('b-mark').textContent = s.bookmarked ? '★' : '☆';
   $('b-mark').classList.toggle('on', s.bookmarked);
   const sh = $('b-shield');
@@ -288,19 +361,44 @@ function panel(o) {
 function closePanel() { panelKind = null; $('panel').classList.remove('open', 'settings'); body.classList.remove('panel'); }
 
 // Settings: every change applies at once and the app sends the panel back.
+let settingsAt = 'start';
+const SECTIONS = [
+  ['start', 'Get started', '&#xE80F;'], ['appearance', 'Appearance', '&#xE790;'], ['content', 'Content', '&#xE8A5;'],
+  ['shields', 'Shields', '&#xEA18;'], ['privacy', 'Privacy and security', '&#xE72E;'], ['sync', 'Sync', '&#xE895;'],
+  ['search', 'Search engine', '&#xE721;'], ['extensions', 'Extensions', '&#xEA86;'], ['autofill', 'Autofill and passwords', '&#xE8D7;'],
+  ['languages', 'Languages', '&#xF2B7;'], ['downloads', 'Downloads', '&#xE896;'], ['accessibility', 'Accessibility', '&#xE776;'],
+  ['system', 'System', '&#xE7F8;'], ['reset', 'Reset settings', '&#xE777;'], ['about', 'About Brisklark', '&#xE946;'],
+];
+function settingsGo(key) {
+  settingsAt = key;
+  const h = document.getElementById('s-' + key), list = $('plist');
+  if (h) list.scrollTop = h.offsetTop - list.offsetTop - 4;
+  for (const b of $('snav').children) b.classList.toggle('on', b.dataset.k === key);
+}
 function settings(o) {
   panelKind = 'settings';
   body.classList.add('overlay', 'panel');
-  const p = $('panel'), list = $('plist'), keep = list.scrollTop;
+  const p = $('panel'), list = $('plist'), nav = $('snav'), keep = list.scrollTop, fresh = !p.classList.contains('settings');
   p.classList.add('open', 'settings');
   $('ptitle').textContent = 'Settings';
-  list.replaceChildren();
+  list.replaceChildren(); nav.replaceChildren();
+  for (const [k, title, icon] of SECTIONS) {
+    const b = el('button', k === settingsAt ? 'on' : '');
+    b.dataset.k = k;
+    const i = el('span', 'ic'); i.innerHTML = icon;
+    b.append(i, el('span', null, title));
+    b.onclick = () => settingsGo(k);
+    nav.append(b);
+  }
   const set = (key, value) => post({ cmd: 'set', key, value });
-  const sec = title => list.append(el('h3', null, title));
+  const sec = (key, title) => { const h = el('h3', null, title); h.id = 's-' + key; list.append(h); };
+  const note = text => { const r = el('div', 'set'); r.append(el('span', 't hint', text)); list.append(r); return r; };
   const row = (label, hint, control) => {
     const r = el('div', 'set'), t = el('span', 't', label);
     if (hint) t.append(el('span', 'hint', hint));
-    r.append(t, control); list.append(r); return r;
+    r.append(t);
+    if (control) r.append(control);
+    list.append(r); return r;
   };
   const seg = (key, value, options) => {
     const s = el('div', 'seg');
@@ -311,67 +409,156 @@ function settings(o) {
     }
     return s;
   };
-  const sw = (key, on) => {
-    const c = el('input', 'sw'); c.type = 'checkbox'; c.checked = on;
-    c.onchange = () => set(key, c.checked);
-    return c;
-  };
+  const toggle = (on, f) => { const c = el('input', 'sw'); c.type = 'checkbox'; c.checked = on; c.onchange = () => f(c.checked); return c; };
+  const sw = (key, on) => toggle(on, v => set(key, v));
+  const pref = name => toggle(o.prefs[name], v => set('pref', { name, on: v }));
   const btn = (text, onclick, disabled) => { const b = el('button', 'btn', text); b.onclick = onclick; b.disabled = !!disabled; return b; };
-  // Clearing asks for a second click.
-  const clear = what => {
-    const b = btn('Clear', () => {
-      if (b.classList.contains('warn')) { set('clear', what); b.textContent = 'Cleared'; b.disabled = true; b.classList.remove('warn'); return; }
-      b.classList.add('warn'); b.textContent = 'Click again to clear';
-      setTimeout(() => { if (b.classList.contains('warn')) { b.classList.remove('warn'); b.textContent = 'Clear'; } }, 4000);
+  const group = (...items) => { const g = el('div', 'grp'); g.append(...items); return g; };
+  const sure = (text, done, label = 'Click again to confirm') => {
+    const b = btn(text, () => {
+      if (b.classList.contains('warn')) { done(); b.textContent = 'Done'; b.disabled = true; b.classList.remove('warn'); return; }
+      b.classList.add('warn'); b.textContent = label;
+      setTimeout(() => { if (b.classList.contains('warn')) { b.classList.remove('warn'); b.textContent = text; } }, 4000);
     });
     return b;
   };
+  const clear = what => sure('Clear', () => set('clear', what), 'Click again to clear');
+  const open = url => { closePanel(); body.classList.remove('overlay'); set('open', url); };
 
-  sec('Appearance');
-  row('Tabs', 'Ctrl+Shift+S switches', seg('top', o.top, [[false, 'On the left'], [true, 'Across the top']]));
+  sec('start', 'Get started');
+  row('On startup', o.startup === 'new' ? 'Pinned tabs are kept' : 'Tabs load when you click them',
+      seg('startup', o.startup, [['continue', 'Continue where I left off'], ['new', 'Open a new tab']]));
+  if (o.sources.length) {
+    const g = group(...o.sources.map((label, i) => btn(label, () => set('import', 1000 + i))));
+    row('Import bookmarks and history', 'From another browser on this PC', g);
+  } else row('Import bookmarks and history', 'No other browsers found on this PC', null);
+  row('Import from a file', 'A bookmarks .html file, as every browser exports', btn('Choose file…', () => set('import', 40)));
+  row('Export', o.bookmarks + ' bookmarks · ' + o.history + ' history entries',
+      group(btn('Bookmarks (.html)', () => set('import', 41), !o.bookmarks), btn('History (.csv)', () => set('import', 42), !o.history)));
+
+  sec('appearance', 'Appearance');
+  row('Tabs', 'Ctrl+Shift+S switches', seg('top', o.top, [[true, 'Across the top'], [false, 'On the left']]));
   row('Hide the tabs', 'Ctrl+S shows them again', sw('folded', o.folded));
+  const zoom = el('select');
+  for (const z of [0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]) {
+    const opt = el('option', null, Math.round(z * 100) + '%'); opt.value = z; opt.selected = Math.abs(z - o.zoom) < 0.001; zoom.append(opt);
+  }
+  zoom.onchange = () => set('zoom', parseFloat(zoom.value));
+  row('Page zoom', 'For every page; Ctrl+plus and Ctrl+minus change one tab', zoom);
 
-  sec('Search');
+  sec('content', 'Content');
+  row('Block cookie notices', 'Cookie banners and consent pop-ups', sw('cookies', o.cookies));
+  row('Pop-ups and redirects', 'Pop-ups and pop-unders to ad addresses never open; sign-in windows still do', null);
+  row('Full screen', 'F11, or a video\'s own full-screen button', null);
+
+  sec('shields', 'Shields');
+  row('Block ads and trackers', 'Brave\'s lists and engine', sw('shields', o.shields));
+  row('Trackers and ads blocking', 'Aggressive also blocks first-party ads, as Brave\'s Aggressive mode',
+      (() => { const s = el('div', 'seg');
+        for (const [v, t] of [[false, 'Standard'], [true, 'Aggressive']]) { const b = el('button', v === o.prefs.aggressive ? 'on' : '', t); b.onclick = () => set('pref', { name: 'aggressive', on: v }); s.append(b); }
+        return s; })());
+  row('Block fingerprinting', 'Pages see slightly different canvas, audio and hardware details each session', pref('fingerprint'));
+  row('Upgrade connections to HTTPS', 'Falls back to http when a site has no https', pref('https'));
+  row('Remove tracking from links', 'Strips parameters like fbclid and utm_source', pref('query'));
+  row('Skip tracking redirects', 'Goes straight to where a tracking link leads', pref('debounce'));
+  row('Send Global Privacy Control', 'Tells sites not to sell or share your data', pref('gpc'));
+  const when = o.updating ? 'Updating…' : o.updated ? 'Updated ' + new Date(o.updated * 1000).toLocaleString() : 'Not downloaded yet';
+  row('Filter lists', when + ' · refreshed every 4 days', btn('Update now', () => set('update', true), o.updating));
+  const regional = o.lists.filter(l => l.regional), extra = o.lists.filter(l => !l.regional);
+  const listRows = (title, items) => {
+    if (!items.length) return;
+    list.append(el('h4', null, title));
+    for (const l of items) row(l.title, l.desc, toggle(l.on, v => set('list', { uuid: l.uuid, on: v })));
+  };
+  listRows('Optional lists', extra);
+  listRows('Regional lists', regional);
+  if (o.off.length) {
+    list.append(el('h4', null, 'Sites with Shields down'));
+    for (const h of o.off) row(h, null, btn('Remove', () => set('unshield', h)));
+  }
+
+  sec('privacy', 'Privacy and security');
+  row('Browsing history', 'Brisklark\'s history and closed tabs', clear('history'));
+  row('Cookies and site data', 'Signs you out of websites', clear('cookies'));
+  row('Cached images and files', 'Pages may load slower once', clear('cache'));
+  row('Private tabs', 'Ctrl+Shift+N · nothing is kept when they close', null);
+  row('Fingerprinting, HTTPS and tracking protection', 'In Shields, above', btn('Go to Shields', () => settingsGo('shields')));
+
+  sec('sync', 'Sync');
+  note('Brisklark has no account and keeps nothing on a server, so there is no sync. To move your bookmarks and history to another PC, export them here and import them there.');
+  row('Move your data', null, group(btn('Export bookmarks', () => set('import', 41), !o.bookmarks), btn('Import…', () => settingsGo('start'))));
+
+  sec('search', 'Search engine');
   const pick = el('select');
   const known = o.engines.some(([, url]) => url === o.engine);
   for (const [name, url] of known ? o.engines : [...o.engines, ['Custom', o.engine]]) {
     const opt = el('option', null, name); opt.value = url; opt.selected = url === o.engine; pick.append(opt);
   }
   pick.onchange = () => set('engine', pick.value);
-  row('Search engine', 'Used when what you type isn\'t an address', pick);
+  row('Search engine used in the address bar', 'When what you type isn\'t an address', pick);
 
-  sec('On startup');
-  row('Open', null, seg('startup', o.startup, [['continue', 'Where I left off'], ['new', 'A new tab']]))
-    .querySelector('.t').append(el('span', 'hint', o.startup === 'new' ? 'Pinned tabs are kept' : 'Tabs load when you click them'));
-
-  sec('Shields');
-  row('Block ads and trackers', 'Brave\'s lists, Standard mode', sw('shields', o.shields));
-  row('Block cookie notices', 'Cookie banners and consent pop-ups', sw('cookies', o.cookies));
-  const when = o.updating ? 'Updating…' : o.updated ? 'Updated ' + new Date(o.updated * 1000).toLocaleString() : 'Not downloaded yet';
-  row('Filter lists', when + ' · refreshed every 4 days', btn('Update now', () => set('update', true), o.updating));
-  if (o.off.length) {
-    const r = row('Sites with Shields down', null, el('span'));
-    r.style.paddingBottom = '2px';
-    for (const h of o.off) {
-      const s = el('div', 'row');
-      s.append(el('span', 't', h), btn('Remove', () => set('unshield', h)));
-      list.append(s);
-    }
+  sec('extensions', 'Extensions');
+  if (!o.extsOk) note('The WebView2 runtime on this PC is too old to run extensions. Update Microsoft Edge WebView2 to use them.');
+  const link = el('input', 'txt'); link.placeholder = 'Paste a Chrome Web Store link'; link.spellcheck = false;
+  link.onkeydown = e => { if (e.key === 'Enter') set('ext-install', link.value); };
+  row('Install from the Chrome Web Store', o.installing ? 'Installing…' : 'Or open the extension\'s page and press Add to Brisklark',
+      group(link, btn('Install', () => set('ext-install', link.value), o.installing || !o.extsOk)));
+  row('Find extensions', null, group(btn('Open the Chrome Web Store', () => open('https://chromewebstore.google.com/')),
+      btn('Load unpacked…', () => set('ext-unpacked', true), !o.extsOk)));
+  if (!o.exts.length) note('No extensions installed.');
+  for (const x of o.exts) {
+    const g = group();
+    if (x.popup || x.options) g.append(btn('Open', () => { closePanel(); body.classList.remove('overlay'); set('ext-open', x.id); }));
+    if (x.options) g.append(btn('Options', () => { closePanel(); body.classList.remove('overlay'); set('ext-options', x.id); }));
+    g.append(sure('Remove', () => set('ext-remove', x.id)), toggle(x.enabled, v => set('ext-enable', { id: x.id, on: v })));
+    row(x.name, x.id, g);
   }
+  note('Extensions run as in Microsoft Edge. Their pages open from the ⋯ menu or the puzzle button; some extensions need features WebView2 doesn\'t have.');
 
-  sec('Privacy');
-  row('Browsing history', 'Brisklark\'s history and closed tabs', clear('history'));
-  row('Cookies and site data', 'Signs you out of websites', clear('cookies'));
-  row('Cached files', 'Pages may load slower once', clear('cache'));
+  sec('autofill', 'Autofill and passwords');
+  row('Offer to save passwords', 'Signs you in to sites with what you saved', sw('passwords', o.passwords));
+  row('Save and fill addresses and forms', 'Names, addresses, phone numbers', sw('autofill', o.autofill));
+  row('Saved passwords and forms', 'Remove them with cookies and site data', btn('Go to Privacy', () => settingsGo('privacy')));
 
-  sec('About');
-  const about = el('span', 't', `Brisklark ${o.version} · MIT licence · `);
+  sec('languages', 'Languages');
+  const lang = el('select');
+  for (const [v, t] of [['', 'Same as Windows (' + navigator.language + ')'], ['en-US', 'English (US)'], ['en-GB', 'English (UK)'], ['af', 'Afrikaans'], ['de', 'Deutsch'], ['es', 'Español'], ['fr', 'Français'], ['it', 'Italiano'], ['nl', 'Nederlands'], ['pt-BR', 'Português (Brasil)'], ['pl', 'Polski'], ['tr', 'Türkçe'], ['ru', 'Русский'], ['ar', 'العربية'], ['hi', 'हिन्दी'], ['ja', '日本語'], ['ko', '한국어'], ['zh-CN', '中文 (简体)']]) {
+    const opt = el('option', null, t); opt.value = v; opt.selected = v === o.language; lang.append(opt);
+  }
+  lang.onchange = () => set('language', lang.value);
+  row('Preferred language', 'Websites show this language when they can · applies after a relaunch', lang);
+
+  sec('downloads', 'Downloads');
+  row('Location', o.downloads || 'Downloads', btn('Change…', () => set('downloads', true)));
+  row('Show downloads', 'Ctrl+J', btn('Open', () => set('show-downloads', true)));
+
+  sec('accessibility', 'Accessibility');
+  row('Page zoom', 'In Appearance', btn('Go to Appearance', () => settingsGo('appearance')));
+  row('Captions, contrast, text size and narrator', 'Windows\' own settings apply to Brisklark too', btn('Open Windows settings', () => set('winsettings', 'easeofaccess')));
+
+  sec('system', 'System');
+  row('Use graphics acceleration when available', 'Turn off if pages flicker or show black · applies after a relaunch', sw('gpu', o.gpu));
+  row('Proxy', 'Brisklark uses Windows\' proxy settings', btn('Open Windows settings', () => set('winsettings', 'network-proxy')));
+  row('Relaunch Brisklark', 'Your tabs come back', btn('Relaunch', () => set('relaunch', true)));
+
+  sec('reset', 'Reset settings');
+  row('Restore settings to their original defaults', 'Keeps your tabs, bookmarks, history and extensions', sure('Reset', () => set('reset', true)));
+
+  sec('about', 'About Brisklark');
+  const about = el('span', 't', 'Brisklark ' + o.version + ' · MIT licence · ');
   const src = el('a', null, 'Source code');
-  src.onclick = () => { closePanel(); body.classList.remove('overlay'); post({ cmd: 'go', text: 'https://github.com/Voltexs/brisklark', mode: 'new' }); };
+  src.onclick = () => open('https://github.com/Voltexs/brisklark');
   about.append(src, el('span', 'hint', 'Based on Search by Office Commun (MIT). Ad blocking: Brave\'s adblock-rust (MPL-2.0). Filter lists by uBlock Origin, EasyList, Brave and others, under their own licences.'));
   const r = el('div', 'set'); r.append(about); list.append(r);
+  list.append(el('div', 'spacer'));
 
-  list.scrollTop = keep;
+  if (fresh) settingsGo(settingsAt); else list.scrollTop = keep;
+  list.onscroll = () => {
+    let cur = SECTIONS[0][0];
+    for (const [k] of SECTIONS) { const h = document.getElementById('s-' + k); if (h && h.offsetTop - list.offsetTop <= list.scrollTop + 40) cur = k; }
+    settingsAt = cur;
+    for (const b of nav.children) b.classList.toggle('on', b.dataset.k === cur);
+  };
   if (!p.contains(document.activeElement)) { p.tabIndex = -1; p.focus(); }
 }
 pq.oninput = () => post({ cmd: 'panel', kind: panelKind, q: pq.value });
@@ -404,6 +591,12 @@ $('b-bookmarks').onclick = () => post({ cmd: 'command', name: 'bookmarks' });
 $('b-layout').onclick = () => post({ cmd: 'command', name: 'layout' });
 $('b-shield').onclick = () => post({ cmd: 'command', name: 'shield' });
 $('b-settings').onclick = () => post({ cmd: 'command', name: 'settings' });
+$('b-menu').onclick = () => post({ cmd: 'command', name: 'menu' });
+$('b-ext').onclick = () => post({ cmd: 'command', name: 'extensions' });
+$('n-back').onclick = () => post({ cmd: 'command', name: 'back' });
+$('n-fwd').onclick = () => post({ cmd: 'command', name: 'forward' });
+$('n-reload').onclick = () => post({ cmd: 'command', name: S.loading ? 'stop' : 'reload' });
+$('addr').onclick = () => post({ cmd: 'command', name: 'field' });
 post({ cmd: 'ready' });
 </script>
 </body>

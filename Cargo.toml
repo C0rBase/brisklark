@@ -13,11 +13,14 @@ wry = { version = "0.57.3", default-features = false }
 # Same versions wry itself uses, so the COM types line up.
 webview2-com = "0.39.1"
 windows = { version = "0.62.2", features = [
-    "Win32_Foundation", "Win32_System_Com", "Win32_System_LibraryLoader",
-    "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging",
+    "Win32_Foundation", "Win32_Globalization", "Win32_System_Com", "Win32_System_LibraryLoader",
+    "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell", "Win32_UI_Shell_Common", "Win32_UI_WindowsAndMessaging",
 ] }
 adblock = "0.13.6"
 base64 = "0.23"
+# Both already come with adblock: the public suffix list, and Brave's debounce patterns.
+psl = "2.1"
+regex = "1"
 
 [profile.release]
 opt-level = 3

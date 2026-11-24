@@ -151,6 +151,8 @@ dependencies = [
  "adblock",
  "arboard",
  "base64",
+ "psl",
+ "regex",
  "serde",
  "serde_json",
  "tao",
