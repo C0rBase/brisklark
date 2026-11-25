@@ -41,8 +41,7 @@ use wry::{
     WebViewBuilderExtWindows, WebViewExtWindows,
 };
 
-const SIDE: f64 = 240.0; // sidebar width
-const BAR: f64 = 78.0; // tabs across the top: the tab row and the toolbar under it
+const BAR: f64 = 72.0; // tabs across the top: the tab row and the toolbar under it
 const HISTORY_CAP: usize = 5000;
 const BLANK: &str = "about:blank"; // a new tab nobody has typed into yet
 const GAP: f64 = 6.0; // the divider between the two pages of a split view
@@ -74,7 +73,6 @@ struct State {
     tabs: Vec<Saved>,
     active: usize,
     bookmarks: Vec<Saved>,
-    top: bool,
     folded: bool,
     engine: String,
     startup: String, // "continue" or "new"
@@ -98,7 +96,6 @@ impl Default for State {
             tabs: vec![],
             active: 0,
             bookmarks: vec![],
-            top: false,
             folded: false,
             engine: "https://www.google.com/search?q=%s".into(),
             startup: "continue".into(),
@@ -196,7 +193,6 @@ enum Cmd {
     PrevTab,  // Ctrl+Shift+[ , Ctrl+Shift+Tab
     NextTab,  // Ctrl+Shift+] , Ctrl+Tab
     Nth(usize), // Ctrl+1..8, Ctrl+9 = last
-    Layout,   // Ctrl+Shift+S
     Fold,     // Ctrl+S
     Bookmark, // Ctrl+Shift+B
     Duplicate, // Ctrl+D
@@ -229,7 +225,6 @@ fn shortcut(vk: u32, ctrl: bool, shift: bool, alt: bool) -> Option<Cmd> {
         ('N', true) => Private,
         ('W', false) => Close,
         ('T', true) => Reopen,
-        ('S', true) => Layout,
         ('S', false) => Fold,
         ('B', true) => Bookmark,
         ('D', false) => Duplicate,
@@ -382,7 +377,6 @@ const ENGINES: &[(&str, &str)] = &[
     ("Google", "https://www.google.com/search?q=%s"),
     ("DuckDuckGo", "https://duckduckgo.com/?q=%s"),
     ("Bing", "https://www.bing.com/search?q=%s"),
-    ("Brave Search", "https://search.brave.com/search?q=%s"),
     ("Startpage", "https://www.startpage.com/do/search?q=%s"),
     ("Ecosia", "https://www.ecosia.org/search?q=%s"),
     ("Kagi", "https://kagi.com/search?q=%s"),
@@ -437,10 +431,8 @@ impl App {
         let s = self.window.inner_size().to_logical::<f64>(self.window.scale_factor());
         if self.state.folded || self.full {
             (0.0, 0.0, s.width, s.height)
-        } else if self.state.top {
-            (0.0, BAR, s.width, s.height - BAR)
         } else {
-            (SIDE, 0.0, s.width - SIDE, s.height)
+            (0.0, BAR, s.width, s.height - BAR)
         }
     }
     fn page_rect(&self) -> Rect {
@@ -454,19 +446,25 @@ impl App {
             rect(0.0, 0.0, s.width, s.height)
         } else if self.state.folded || self.full {
             rect(0.0, 0.0, 0.0, 0.0)
-        } else if self.state.top {
-            rect(0.0, 0.0, s.width, BAR)
         } else {
-            rect(0.0, 0.0, SIDE, s.height)
+            rect(0.0, 0.0, s.width, BAR)
         };
         let _ = self.chrome.set_bounds(chrome);
         let _ = self.chrome.set_visible(self.overlay || !(self.state.folded || self.full));
+        if self.overlay {
+            // The field's list hangs over the page: the bar's own window has to
+            // sit above the tab's, which was created after it.
+            unsafe {
+                use windows::Win32::UI::WindowsAndMessaging::{SetWindowPos, HWND_TOP, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE};
+                let _ = SetWindowPos(self.chrome.hwnd(), Some(HWND_TOP), 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+            }
+        }
 
         // The page, or the two pages of a split view side by side in tab order.
         let (x, y, w, h) = self.page_area();
         let mut want: Vec<(u32, Rect)> = vec![];
         self.divider = None;
-        if let Some(i) = self.active.and_then(|id| self.idx(id)).filter(|_| !self.overlay) {
+        if let Some(i) = self.active.and_then(|id| self.idx(id)) {
             let j = self.tabs[i].partner.and_then(|p| self.idx(p)).filter(|&j| self.tabs[j].view.is_some());
             match j {
                 Some(j) => {
@@ -557,7 +555,7 @@ impl App {
         if self.tabs[i].url == BLANK {
             // A new tab has no page until an address is typed: just the field.
             self.render();
-            return self.focus_field("here", true);
+            return self.focus_field("here");
         }
         // Both halves of a split view come up together.
         for j in [Some(i), self.tabs[i].partner.and_then(|p| self.idx(p))].into_iter().flatten() {
@@ -602,7 +600,7 @@ impl App {
             self.active = None;
             match self.tabs.get(i).or_else(|| self.tabs.last()).map(|t| t.id) {
                 Some(next) => self.select(next),
-                None => self.focus_field("new", false),
+                None => self.focus_field("new"),
             }
         }
         self.dirty = true;
@@ -663,7 +661,7 @@ impl App {
         });
         let live = self.current().is_some_and(|t| t.view.is_some());
         let loading = self.current().is_some_and(|t| t.loading);
-        self.eval("render", json!({"tabs": tabs, "top": self.state.top, "folded": self.state.folded, "overlay": self.overlay,
+        self.eval("render", json!({"tabs": tabs, "folded": self.state.folded, "overlay": self.overlay,
                                    "bookmarked": marked, "shields": shields, "blocked": blocked,
                                    "back": back, "forward": forward, "live": live, "loading": loading,
                                    "store": self.current().and_then(|t| ext::store_id(&t.url)).is_some(), "installing": self.installing}));
@@ -671,8 +669,9 @@ impl App {
         self.window.set_title(&title);
     }
 
-    fn focus_field(&mut self, mode: &str, overlay_always: bool) {
-        self.overlay = overlay_always || self.state.top || self.state.folded;
+    fn focus_field(&mut self, mode: &str) {
+        // The tabs are across the top, so the field always floats over the page.
+        self.overlay = true;
         self.layout();
         let _ = self.chrome.focus();
         let url = if mode == "here" { self.current().map_or("", |t| t.url.as_str()) } else { "" };
@@ -680,15 +679,17 @@ impl App {
         self.eval("focusField", json!({"mode": mode, "overlay": self.overlay, "text": url}));
     }
 
-    fn done(&mut self) {
-        // Leaving a new tab without typing anything takes it away again, back
-        // to the tab before. With nothing to go back to, the cursor goes back
-        // into the box instead, so the click is never lost.
-        if let Some(t) = self.current().filter(|t| t.url == BLANK) {
-            return if self.tabs.len() > 1 { self.close(t.id) } else { self.focus_field("here", true) };
+    fn done(&mut self, cancel: bool) {
+        // Esc on a tab nobody has typed into takes it away again. Any other way
+        // out of the field (a click, or opening another tab) keeps it, as in
+        // Chrome, so several new tabs can be open at once.
+        if cancel {
+            if let Some(t) = self.current().filter(|t| t.url == BLANK) {
+                return if self.tabs.len() > 1 { self.close(t.id) } else { self.focus_field("here") };
+            }
         }
         if self.tabs.is_empty() {
-            return self.focus_field("new", false);
+            return self.focus_field("new");
         }
         self.overlay = false;
         self.layout();
@@ -725,8 +726,12 @@ impl App {
         if !tabs_only && !q.is_empty() {
             out.push(json!({"kind": "go", "title": q, "url": resolve(&q, &self.state.engine)}));
         }
-        for t in self.tabs.iter().filter(|t| hit(&t.title, &t.url)).take(if tabs_only { 20 } else { 3 }) {
-            out.push(json!({"kind": "tab", "id": t.id, "title": t.title, "url": t.url}));
+        // Tabs answer a query, or the tab switcher; never the tab you are on.
+        if tabs_only || !q.is_empty() {
+            for t in self.tabs.iter().filter(|t| Some(t.id) != self.active && hit(&t.title, &t.url))
+                .take(if tabs_only { 20 } else { 3 }) {
+                out.push(json!({"kind": "tab", "id": t.id, "title": t.title, "url": t.url}));
+            }
         }
         if !tabs_only && !q.is_empty() {
             for b in self.state.bookmarks.iter().filter(|b| hit(&b.title, &b.url)).take(3) {
@@ -763,8 +768,8 @@ impl App {
             s.current().and_then(|t| t.view.as_ref())
         }
         match cmd {
-            Cmd::Field => self.focus_field("here", false),
-            Cmd::Switch => self.focus_field("tabs", false),
+            Cmd::Field => self.focus_field("here"),
+            Cmd::Switch => self.focus_field("tabs"),
             Cmd::NewTab | Cmd::Private => {
                 let id = self.add_tab(BLANK.into(), cmd == Cmd::Private, None);
                 self.select(id);
@@ -801,12 +806,6 @@ impl App {
             Cmd::Nth(k) if !self.tabs.is_empty() => {
                 let i = k.min(self.tabs.len() - 1);
                 self.select(self.tabs[i].id);
-            }
-            Cmd::Layout => {
-                self.state.top = !self.state.top;
-                self.dirty = true;
-                self.layout();
-                self.render();
             }
             Cmd::Fold => {
                 self.state.folded = !self.state.folded;
@@ -962,7 +961,7 @@ impl App {
             M::Sep,
             M::Item(9, "Close".into(), true),
             M::Item(10, "Close other tabs".into(), !rest.is_empty()),
-            M::Item(11, format!("Close tabs {}", if self.state.top { "to the right" } else { "below" }), !after.is_empty()),
+            M::Item(11, "Close tabs to the right".into(), !after.is_empty()),
         ];
         match self.popup(&items) {
             1 => {
@@ -1136,7 +1135,7 @@ impl App {
     fn reset(&mut self) {
         let d = State::default();
         let s = &mut self.state;
-        (s.top, s.folded, s.engine, s.startup) = (d.top, d.folded, d.engine, d.startup);
+        (s.folded, s.engine, s.startup) = (d.folded, d.engine, d.startup);
         (s.shields, s.cookie_notices, s.shields_off, s.shield) = (d.shields, d.cookie_notices, d.shields_off, d.shield);
         (s.passwords, s.autofill, s.downloads, s.zoom, s.gpu, s.language) = (d.passwords, d.autofill, d.downloads, d.zoom, d.gpu, d.language);
         {
@@ -1275,7 +1274,6 @@ impl App {
             M::Item(8, "Find on page…\tCtrl+F".into(), live),
             M::Item(9, "Save page as…".into(), live),
             M::Sep,
-            M::Check(13, "Tabs across the top\tCtrl+Shift+S".into(), self.state.top, true),
             M::Item(12, "Developer tools\tF12".into(), live),
             M::Sep,
             M::Item(10, "Settings\tCtrl+,".into(), true),
@@ -1314,7 +1312,7 @@ impl App {
                     v.open_devtools();
                 }
             }
-            13 => self.command(Cmd::Layout),
+            13 => {}
             11 => self.quit = true,
             30 => self.set_zoom(1),
             31 => self.set_zoom(-1),
@@ -1424,7 +1422,7 @@ impl App {
             json!({"id": x.id, "name": x.name, "enabled": x.enabled, "popup": popup.is_some(), "options": options.is_some()})
         }).collect();
         let sources: Vec<String> = import::sources().into_iter().map(|s| s.label).collect();
-        let o = json!({"top": self.state.top, "folded": self.state.folded, "engine": self.state.engine,
+        let o = json!({"folded": self.state.folded, "engine": self.state.engine,
             "engines": ENGINES, "startup": self.state.startup, "shields": s.on,
             "cookies": self.state.cookie_notices, "off": off, "updated": updated, "updating": self.updating,
             "version": env!("CARGO_PKG_VERSION"),
@@ -1443,10 +1441,6 @@ impl App {
     fn set(&mut self, key: &str, v: &Value) {
         let b = v.as_bool().unwrap_or(false);
         match key {
-            "top" => {
-                self.state.top = b;
-                self.layout();
-            }
             "folded" => {
                 self.state.folded = b;
                 self.layout();
@@ -1644,8 +1638,8 @@ impl App {
                 self.layout();
                 self.render();
                 match self.current().map(|t| t.url == BLANK) {
-                    None => self.focus_field("new", false),
-                    Some(true) => self.focus_field("here", true),
+                    None => self.focus_field("new"),
+                    Some(true) => self.focus_field("here"),
                     Some(false) => {}
                 }
             }
@@ -1672,7 +1666,6 @@ impl App {
                 "bookmark" => self.command(Cmd::Bookmark),
                 "history" => self.command(Cmd::History),
                 "bookmarks" => self.command(Cmd::Bookmarks),
-                "layout" => self.command(Cmd::Layout),
                 "fold" => self.command(Cmd::Fold),
                 "settings" => self.command(Cmd::Settings),
                 "shield" => self.shield_menu(),
@@ -1694,7 +1687,7 @@ impl App {
                 }
                 _ => {}
             },
-            "done" => self.done(),
+            "done" => self.done(m["cancel"].as_bool().unwrap_or(false)),
             // Our own title bar: the tab row or sidebar is where the window is held.
             "drag" => drop(self.window.drag_window()),
             "resize-top" => drop(self.window.drag_resize_window(ResizeDirection::North)),
@@ -1893,7 +1886,12 @@ fn main() {
         .expect("window");
     paint(&window, window.theme());
 
-    let state: State = load("state.json");
+    let mut state: State = load("state.json");
+    // An engine the list no longer offers (Brave Search, a custom address from
+    // an older state) goes back to the default.
+    if !ENGINES.iter().any(|(_, u)| *u == state.engine) {
+        state.engine = ENGINES[0].1.into();
+    }
     let off: HashSet<String> = state.shields_off.iter().cloned().collect();
     let shield = shield::Shield::load(state.shields, off, state.shield.clone(), &lists(&state));
     let history: Vec<Visit> = load("history.json");
@@ -1905,7 +1903,10 @@ fn main() {
         .with_ipc_handler(move |req| {
             let _ = ipc.send_event(Ev::Ipc(req.into_body()));
         })
-        .with_bounds(rect(0.0, 0.0, SIDE, 800.0))
+        .with_bounds(rect(0.0, 0.0, 1200.0, BAR))
+        // Transparent, so a suggestion list or a panel can hang over the page
+        // without hiding it; the bar itself paints its own background.
+        .with_background_color((0, 0, 0, 0))
         // The environment every page shares: extensions on, and the person's
         // choices that WebView2 only takes when it starts.
         .with_browser_extensions_enabled(true)
@@ -1971,7 +1972,7 @@ fn main() {
         let _ = p.send_event(Ev::Shield(c));
     });
     app.fetch_ubo(false);
-    if fresh {
+    if fresh || app.tabs.is_empty() {
         let id = app.add_tab(BLANK.into(), false, None);
         app.select(id);
     } else if let Some(t) = app.tabs.get(app.state.active).or(app.tabs.first()) {

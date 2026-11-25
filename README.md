@@ -30,12 +30,12 @@ site. Lists are fetched with Windows' `curl.exe` and refreshed every four days
 
 ## What's in it
 
-- Tabs down the left or across the top, in place of Windows' title bar
+- Tabs across the top, in place of Windows' title bar
 - Right-click a tab: new tab to the right, reload, duplicate, pin, mute, split
   view, bookmark, copy link, close others / to the right
 - Split view: two tabs side by side, drag the divider; the pair is remembered
 - Speaker icon on tabs playing sound; click it to mute
-- Settings (`Ctrl+,` or ⚙): tab position, search engine, on startup, Shields,
+- Settings (`Ctrl+,` or ⚙): search engine, on startup, Shields,
   clear history / cookies / cache
 - Pinned tabs and private tabs
 - One field for addresses and searches, suggesting from history, bookmarks and open tabs
@@ -43,14 +43,14 @@ site. Lists are fetched with Windows' `curl.exe` and refreshed every four days
 - Your session restored on launch; restored tabs aren't loaded until clicked,
   and hidden tabs drop to WebView2's low-memory level
 
-`+` or `Ctrl+T` adds a New Tab; Esc or a click outside the box on one you
-haven't typed into takes it away again. Middle-click a tab to close it. Drag the
-empty part of the tab row to move the window; double-click it to maximise.
+`+` or `Ctrl+T` adds a New Tab; Esc on one you haven't typed into takes it away
+again. Middle-click a tab to close it. Drag the empty part of the tab row to
+move the window; double-click it to maximise.
 
 | | |
 |---|---|
 | `Ctrl+L` address · `Ctrl+K` switch tab · `Ctrl+T` new tab · `Ctrl+W` close · `Ctrl+Shift+T` reopen | `Ctrl+[` `Ctrl+]` back, forward · `Ctrl+Tab`, `Ctrl+Shift+[` `]` previous/next tab · `Ctrl+1`–`9` jump |
-| `Ctrl+Shift+S` tabs left/top · `Ctrl+S` hide the tabs · `Ctrl+Shift+B` bookmark | `Ctrl+D` duplicate · `Ctrl+Shift+C` copy address · `Ctrl+Shift+V` paste and go |
+| `Ctrl+S` hide the tabs · `Ctrl+Shift+B` bookmark | `Ctrl+D` duplicate · `Ctrl+Shift+C` copy address · `Ctrl+Shift+V` paste and go |
 | `Ctrl+Y` history · `Ctrl+Shift+O` bookmarks · `Ctrl+Shift+N` private tab · `Ctrl+,` settings | `Ctrl+F` find, `Ctrl+P` print, `F5` reload: WebView2's own |
 
 ## Build

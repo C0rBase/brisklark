@@ -6,109 +6,125 @@
 :root {
   --bg: #f4f4f5; --fg: #18181b; --dim: #71717a; --hover: rgba(0,0,0,.055); --sel: #ffffff;
   --line: rgba(0,0,0,.09); --accent: #2563eb; --field: #ffffff; --card: #ffffff;
+  --ring: rgba(37,99,235,.16);
   --shadow: 0 12px 40px rgba(0,0,0,.16), 0 0 0 1px rgba(0,0,0,.06);
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #1c1c1f; --fg: #ececee; --dim: #a1a1aa; --hover: rgba(255,255,255,.07); --sel: #2e2e33;
     --line: rgba(255,255,255,.09); --accent: #5b8def; --field: #2a2a2e; --card: #26262a;
+    --ring: rgba(91,141,239,.22);
     --shadow: 0 12px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06);
   }
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; }
-body { background: var(--bg); color: var(--fg); font: 13px "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+body { background: transparent; color: var(--fg); font: 13px "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
        user-select: none; }
-#side { display: flex; flex-direction: column; height: 100%; padding: 8px; gap: 6px; }
-#box { position: relative; }
-#field { width: 100%; height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px;
-         background: var(--field); color: var(--fg); font: inherit; outline: none; }
-#field:focus { border-color: var(--accent); }
-#sugg { list-style: none; margin: 4px 0 0; padding: 0; }
-#sugg li, .row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: default; overflow: hidden; }
+#box { display: none; }
+#field { width: 100%; height: 30px; border: 1px solid var(--accent); border-radius: 9px; padding: 0 12px;
+         background: var(--field); color: var(--fg); font: inherit; outline: none;
+         box-shadow: 0 0 0 3px var(--ring); }
+#sugg { list-style: none; margin: 0; padding: 4px; position: absolute; top: 34px; left: 0; right: 0;
+        background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);
+        max-height: 62vh; overflow-y: auto; }
+#sugg:empty { display: none; }
+#sugg li, .row { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 7px; cursor: default; overflow: hidden; }
 #sugg li.on, .row:hover, #sugg li:hover { background: var(--hover); }
 .t { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .u { color: var(--dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; }
 .kind { color: var(--dim); font-size: 11px; }
-#pins { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
+
+/* the window's own bar: a row of tabs, a toolbar under it, in place of Windows' title bar */
+#side { display: flex; flex-flow: row wrap; align-content: flex-start; align-items: center;
+  gap: 0 6px; padding: 0 0 0 8px; height: 72px; background: var(--bg); position: relative;
+  box-shadow: inset 0 -1px 0 var(--line); }
+#side::before { content: ''; order: 4; flex-basis: 100%; height: 0; } /* the line break between the rows */
+
+/* pinned tabs, the tab row, the window buttons */
+#pins { order: 1; display: flex; flex: none; height: 36px; align-items: center; gap: 2px; }
 #pins:empty { display: none; }
-.pin { height: 40px; border-radius: 8px; background: var(--hover); display: grid; place-items: center; }
-.pin.active { background: var(--sel); outline: 1px solid var(--line); }
-#tabs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
-.tab.active { background: var(--sel); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
-.tab .x { visibility: hidden; border: 0; background: none; color: var(--dim); font-size: 14px; padding: 0 2px; }
-.tab:hover .x { visibility: visible; }
-.icon { width: 16px; height: 16px; flex: none; border-radius: 3px; display: grid; place-items: center;
-        font-size: 10px; font-weight: 600; background: var(--line); color: var(--fg); }
-img.icon { background: none; }
+.pin { width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; }
+.pin:hover { background: var(--hover); }
+.pin.active { background: var(--sel); box-shadow: inset 0 0 0 1px var(--line); }
+#tabs { order: 2; display: flex; flex: 1 1 0; min-width: 0; height: 36px; align-items: center;
+  flex-direction: row; gap: 4px; overflow-x: auto; overflow-y: hidden; }
+#tabs::-webkit-scrollbar { display: none; }
+.tab { flex: 0 1 200px; min-width: 64px; height: 30px; padding: 0 8px; border-radius: 8px; }
+.tab:hover:not(.active) { background: var(--hover); }
+.tab.active { background: var(--sel); box-shadow: 0 1px 2px rgba(0,0,0,.10); }
+.tab .t { font-size: 12.5px; }
+.tab:not(.active):not(:hover) .t { color: var(--dim); }
+.tab .x { width: 18px; height: 18px; border-radius: 5px; border: 0; background: none; color: var(--dim);
+  font: 13px/1 "Segoe UI", sans-serif; display: grid; place-items: center; visibility: hidden; }
+.tab:hover .x, .tab.active .x { visibility: visible; }
+.tab .x:hover { background: var(--hover); color: var(--fg); }
+.tab.shown:not(.active) { box-shadow: inset 0 0 0 1px var(--line); }
+.icon { width: 16px; height: 16px; flex: none; border-radius: 4px; display: grid; place-items: center;
+  font-size: 9px; font-weight: 600; background: var(--hover); color: var(--dim); }
+img.icon { background: none; object-fit: contain; }
+.icon.blank { background: none; font: 12px "Segoe Fluent Icons", "Segoe MDL2 Assets"; }
 .private .icon { background: #7b4fd6; color: #fff; }
-#bar { display: flex; gap: 2px; border-top: 1px solid var(--line); padding-top: 6px; }
-#bar button { flex: 1; height: 28px; border: 0; border-radius: 6px; background: none; color: var(--dim); font: inherit; font-size: 14px; }
-#bar button:hover { background: var(--hover); color: var(--fg); }
-#bar button.on { color: var(--accent); }
+.snd { border: 0; background: none; color: var(--dim); font-size: 12px; padding: 0 2px; flex: none; }
+.snd:hover { color: var(--fg); }
+.snd.muted { color: var(--accent); }
+.sm { width: 13px; height: 10px; flex: none; border: 1.5px solid var(--dim); border-radius: 2px;
+  background: linear-gradient(90deg, transparent 42%, var(--dim) 42% 58%, transparent 58%); }
+
+/* the new-tab button, right after the last tab */
+.add { flex: none; width: 26px; height: 26px; justify-content: center; padding: 0; border-radius: 7px; color: var(--dim); }
+.add:hover { background: var(--hover); color: var(--fg); }
+.add .plus { font-size: 15px; line-height: 16px; }
+.add .label { display: none; }
 
 /* minimize, maximize, close: in place of Windows' title bar */
-#win { display: flex; justify-content: flex-end; margin: -8px -8px 0; flex: none; min-height: 32px; }
-#win button { width: 46px; height: 32px; border: 0; background: none; color: var(--fg);
+#win { order: 3; display: flex; justify-content: flex-end; flex: none; height: 36px; }
+#win button { width: 46px; height: 36px; border: 0; background: none; color: var(--dim);
   font: 10px "Segoe Fluent Icons", "Segoe MDL2 Assets"; }
-#win button:hover { background: var(--hover); }
+#win button:hover { background: var(--hover); color: var(--fg); }
 #win #w-close:hover { background: #c42b1c; color: #fff; }
-body.top #win { margin: 0 -8px 0 4px; align-self: start; }
-body.top #win button { height: 34px; }
 body.overlay.folded #win { display: none; }
 
-/* back, forward, reload: in the window-button row on the left, or the toolbar on top */
-#side { position: relative; }
-#nav { display: flex; gap: 2px; flex: none; position: absolute; top: 2px; left: 6px; z-index: 1; }
-#nav button, #b-menu { width: 30px; height: 28px; border: 0; border-radius: 6px; background: none; color: var(--fg);
-  font: 13px "Segoe Fluent Icons", "Segoe MDL2 Assets"; display: grid; place-items: center; padding: 0; }
-#nav button:hover:not(:disabled), #b-menu:hover { background: var(--hover); }
-#nav button:disabled { color: var(--dim); opacity: .45; }
-#addr { display: none; }
+/* back, forward, reload */
+#nav { order: 5; display: flex; gap: 2px; flex: none; height: 36px; align-items: center; }
+#nav button, #bar button { width: 28px; height: 28px; border: 0; border-radius: 7px; background: none;
+  color: var(--fg); display: grid; place-items: center; padding: 0;
+  font: 13px "Segoe Fluent Icons", "Segoe MDL2 Assets"; }
+#nav button:hover:not(:disabled), #bar button:hover { background: var(--hover); }
+#nav button:disabled { color: var(--dim); opacity: .4; }
 body.overlay.folded #nav { display: none; }
 
-/* tabs across the top: a row of tabs from the left edge, and a toolbar under it, as in Chrome */
-body.top #side { display: flex; flex-flow: row wrap; align-content: flex-start; align-items: center; gap: 0 6px;
-  padding: 0 0 0 8px; height: 78px; }
-body.top #side::before { content: ''; order: 4; flex-basis: 100%; height: 0; } /* the line break between the rows */
-body.top #pins { order: 1; height: 38px; align-items: center; }
-body.top #pins:empty { display: none; }
-body.top #tabs { order: 2; flex: 1 1 0; min-width: 0; height: 38px; align-items: center; }
-body.top #win { order: 3; }
-body.top #nav { order: 5; position: static; height: 40px; align-items: center; }
-body.top #addr { order: 6; flex: 1 1 0; display: flex; align-items: center; gap: 8px; height: 32px; min-width: 0;
-  padding: 0 12px; border-radius: 16px; background: var(--field); border: 1px solid var(--line); cursor: text; }
-body.top #addr:hover { border-color: var(--dim); }
+/* the address pill, the field that takes its place, and the list under it */
+#omni { order: 6; flex: 1 1 0; min-width: 0; height: 30px; position: relative; }
+#addr { position: absolute; inset: 0; display: flex; align-items: center; gap: 8px; padding: 0 12px;
+  border-radius: 9px; background: var(--hover); border: 1px solid transparent; cursor: text;
+  transition: background .12s, border-color .12s; }
+#addr:hover { background: var(--field); border-color: var(--line); }
 #addr .lock { font: 11px "Segoe Fluent Icons", "Segoe MDL2 Assets"; color: var(--dim); flex: none; }
 #addr .u { flex: 1; max-width: none; font-size: 13px; color: var(--fg); }
 #addr .u .h { color: var(--fg); } #addr .u .p { color: var(--dim); }
-body.top #bar { order: 7; height: 40px; align-items: center; padding-right: 8px; }
-body.overlay.folded #addr { display: none; }
-/* old one-row top bar, kept for what still applies */
-body.top #box { display: none; }
-body.top #pins { display: flex; flex: none; }
-body.top .pin { width: 32px; height: 30px; }
-body.top #tabs { flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: 4px; }
-body.top .tab { flex: 0 1 200px; min-width: 60px; }
-body.top #tabs::-webkit-scrollbar { display: none; }
-.add { color: var(--dim); }
-.add .plus { width: 16px; text-align: center; font-size: 16px; line-height: 16px; }
-body.top .add { flex: none; width: 30px; justify-content: center; padding: 6px 0; }
-body.top .add .label { display: none; }
-body.top #bar { border: 0; padding: 0; flex: none; }
-body.top #bar button { width: 32px; flex: none; }
+#addr .store { flex: none; border: 0; border-radius: 8px; padding: 4px 10px; background: var(--accent);
+  color: #fff; font: 12px "Segoe UI", sans-serif; cursor: pointer; }
+#addr .store:disabled { opacity: .6; }
+#omni.on #addr { display: none; }
+#omni.on #box { display: block; position: absolute; inset: 0; }
 
-/* the command bar and panels, over the whole window */
-/* Over the page the tabs stay where they are, as in any browser, and the field
-   floats in the page area. Folded away, the tabs stay hidden. */
-body.overlay:not(.top) #side { width: 240px; }
-body.overlay:not(.top):not(.folded) #box { left: calc(50% + 120px); width: min(640px, calc(100vw - 280px)); }
+/* the toolbar's icons: bookmark, shields, extensions, menu */
+#bar { order: 7; display: flex; gap: 4px; flex: none; height: 36px; align-items: center; padding-right: 8px; }
+#bar button { color: var(--dim); }
+#bar button:hover { color: var(--fg); }
+#bar button.on { color: #f5b301; }
+#b-shield { display: grid; place-items: center; position: relative; color: #e8590c !important; }
+#b-shield.down { color: var(--dim) !important; }
+#b-shield .n { position: absolute; top: 1px; right: 1px; font: 600 8.5px "Segoe UI", sans-serif; color: var(--fg); }
+body.overlay.folded #addr, body.overlay.folded #pins,
+body.overlay.folded #tabs, body.overlay.folded #bar { display: none; }
+
+/* panels (history, bookmarks, settings) over the page; the tabs stay where they are */
 body.overlay.folded #pins, body.overlay.folded #tabs, body.overlay.folded #bar { display: none; }
-body.overlay #box, #panel { display: block; position: fixed; left: 50%; top: 12vh; transform: translateX(-50%);
-  width: min(640px, 92vw); background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
-  padding: 10px; box-shadow: var(--shadow); }
-body.overlay #field { height: 40px; font-size: 15px; }
-#panel { display: none; max-height: 76vh; flex-direction: column; }
+#panel { display: none; position: fixed; left: 50%; top: 12vh; transform: translateX(-50%);
+  width: min(640px, 92vw); max-height: 76vh; flex-direction: column; background: var(--bg);
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px; box-shadow: var(--shadow); }
 #panel.open { display: flex; }
 body.overlay.panel #box { display: none; }
 #panel h2 { font-size: 14px; margin: 2px 4px 8px; }
@@ -117,7 +133,8 @@ body.overlay.panel #box { display: none; }
 #plist { overflow-y: auto; flex: 1; min-width: 0; }
 .sbody { display: flex; gap: 14px; min-height: 0; flex: 1 1 auto; }
 #snav { display: none; }
-#panel.settings { width: min(1000px, 94vw); height: 84vh; max-height: 84vh; top: 7vh; }
+#panel.settings { width: min(1000px, 94vw); height: calc(92vh - 72px); max-height: calc(92vh - 72px);
+  top: calc(72px + 4vh); }
 #panel.settings #snav { display: flex; flex-direction: column; gap: 1px; width: 220px; flex: none; overflow-y: auto; }
 #snav button { display: flex; align-items: center; gap: 10px; text-align: left; border: 0; background: none; color: var(--fg);
   font: inherit; padding: 8px 10px; border-radius: 7px; }
@@ -170,25 +187,10 @@ select { font: inherit; color: var(--fg); background: var(--field); border: 1px 
 .sw:checked::after { left: 19px; }
 #panel a { color: var(--accent); cursor: pointer; }
 
-/* ---- polish: tabs, toolbar, field ---- */
+/* ---- polish: rows and cards ---- */
 .row { transition: background .12s; }
-.tab { height: 34px; border-radius: 8px; }
-.tab.active { background: var(--sel); box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 0 0 1px var(--line); }
-.tab .x { width: 20px; height: 20px; border-radius: 5px; display: grid; place-items: center; line-height: 1; }
-.tab .x:hover { background: var(--hover); color: var(--fg); }
-.tab.active .x { visibility: visible; }
-.icon { border-radius: 4px; font-size: 9px; background: var(--hover); color: var(--dim); }
-img.icon { object-fit: contain; }
-#bar { gap: 4px; }
-#bar button { border-radius: 8px; font: 15px "Segoe Fluent Icons", "Segoe MDL2 Assets"; color: var(--dim); }
-#bar button.on { color: #f5b301; }
-#b-shield { color: #e8590c !important; }
-#b-shield.down { color: var(--dim) !important; }
-body.top #bar button { width: 34px; height: 32px; }
-body.top #addr { border-radius: 10px; border-color: transparent; background: var(--hover); }
-body.top #addr:hover { border-color: var(--line); background: var(--field); }
-#field { border-radius: 10px; }
-body.overlay #box, #panel { border-radius: 14px; border: 0; box-shadow: var(--shadow); }
+#bar button { font-size: 14px; }
+#panel { border-radius: 14px; border: 0; box-shadow: var(--shadow); }
 
 /* ---- Settings: a nav on the left, one section on the right, rows in cards ---- */
 #panel.settings { padding: 0; overflow: hidden; background: var(--bg); }
@@ -229,7 +231,7 @@ body.overlay #box, #panel { border-radius: 14px; border: 0; box-shadow: var(--sh
 ::-webkit-scrollbar-track { background: transparent; }
 </style>
 </head>
-<body>
+<body class="top">
 <div id="side">
   <div id="win">
     <button id="w-min" title="Minimize">&#xE921;</button><button id="w-max" title="Maximize">&#xE922;</button><button id="w-close" title="Close">&#xE8BB;</button>
@@ -237,8 +239,10 @@ body.overlay #box, #panel { border-radius: 14px; border: 0; box-shadow: var(--sh
   <div id="nav">
     <button id="n-back" title="Back (Alt+Left)">&#xE72B;</button><button id="n-fwd" title="Forward (Alt+Right)">&#xE72A;</button><button id="n-reload" title="Reload (F5)">&#xE72C;</button>
   </div>
-  <div id="addr" title="Search or enter address (Ctrl+L)"><span class="lock"></span><span class="t u"></span></div>
-  <div id="box"><input id="field" spellcheck="false" autocomplete="off"><ul id="sugg"></ul></div>
+  <div id="omni">
+    <div id="addr" title="Search or enter address (Ctrl+L)"><span class="lock"></span><span class="t u"></span></div>
+    <div id="box"><input id="field" spellcheck="false" autocomplete="off"><ul id="sugg"></ul></div>
+  </div>
   <div id="pins"></div>
   <div id="tabs"></div>
   <div id="bar">
@@ -253,7 +257,7 @@ body.overlay #box, #panel { border-radius: 14px; border: 0; box-shadow: var(--sh
 const $ = id => document.getElementById(id);
 const post = o => window.ipc.postMessage(JSON.stringify(o));
 const field = $('field'), sugg = $('sugg'), body = document.body;
-let S = { tabs: [] }, mode = 'here', items = [], sel = 0, panelKind = null, finishing = false;
+let S = { tabs: [] }, mode = 'here', items = [], sel = 0, listFor = '', panelKind = null, finishing = false;
 
 const hostOf = u => { try { return new URL(u).host; } catch { return ''; } };
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
@@ -261,6 +265,11 @@ function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.
 // one that failed once is not asked for again (no flicker on every render).
 const badIcons = new Set();
 function icon(t) {
+  if (!t.icon && (!t.url || t.url === 'about:blank')) {
+    const g = el('span', 'icon blank');
+    g.innerHTML = '&#xE774;'; // a globe, as Chrome shows before a page has one
+    return g;
+  }
   const letter = el('span', 'icon', ((hostOf(t.url) || t.title || '?').replace(/^www\./, '')[0] || '?').toUpperCase());
   const h = hostOf(t.url);
   const src = t.icon && /^(https?|data):/.test(t.icon) ? t.icon : !t.private && /^https?:/.test(t.url) && h ? `https://${h}/favicon.ico` : '';
@@ -287,8 +296,7 @@ function render(s) {
   S = s;
   // The app decides whether anything covers the page; a panel or box it has
   // put away must not stay drawn in the strip.
-  if (!s.overlay && body.classList.contains('overlay')) { closePanel(); items = []; sugg.replaceChildren(); body.classList.remove('overlay'); }
-  body.classList.toggle('top', s.top);
+  if (!s.overlay && body.classList.contains('overlay')) { closePanel(); items = []; sugg.replaceChildren(); $('omni').classList.remove('on'); body.classList.remove('overlay'); }
   body.classList.toggle('folded', !!s.folded);
   const pins = $('pins'), tabs = $('tabs');
   pins.replaceChildren(); tabs.replaceChildren();
@@ -350,6 +358,7 @@ function render(s) {
 
 function focusField(o) {
   mode = o.mode; closePanel(); finishing = false;
+  $('omni').classList.add('on');
   body.classList.toggle('overlay', o.overlay);
   field.placeholder = { tabs: 'Switch to tab…', private: 'Private tab: search or enter address', new: 'New tab: search or enter address' }[mode] || 'Search or enter address';
   field.value = o.text || '';
@@ -359,7 +368,7 @@ function focusField(o) {
 function query() { post({ cmd: 'suggest', q: field.value, tabs: mode === 'tabs' }); }
 function suggest(list) {
   if (document.activeElement !== field) return;
-  items = list; sel = 0; sugg.replaceChildren();
+  items = list; sel = 0; listFor = field.value; sugg.replaceChildren();
   list.forEach((it, i) => {
     const li = el('li', i === sel ? 'on' : '');
     li.append(it.kind === 'go' ? el('span', 'kind', '→') : icon(it), el('span', 't', it.kind === 'go' ? it.url : (it.title || it.url)));
@@ -369,14 +378,18 @@ function suggest(list) {
   });
 }
 function pick(it) {
-  if (it && it.kind === 'tab') post({ cmd: 'select', id: it.id });
-  else if (it) post({ cmd: 'go', text: it.url, mode });
+  // The list may belong to text that has since changed: only a tab picked from
+  // the list for what is typed now wins over the text itself.
+  if (it && it.kind === 'tab' && field.value === listFor) post({ cmd: 'select', id: it.id });
+  else if (it && it.kind !== 'go' && field.value === listFor) post({ cmd: 'go', text: it.url, mode });
   else if (field.value.trim()) post({ cmd: 'go', text: field.value, mode });
   else return finish();
   reset();
 }
-function reset() { items = []; sugg.replaceChildren(); body.classList.remove('overlay'); finishing = true; field.blur(); finishing = false; }
-function finish() { reset(); post({ cmd: 'done' }); render(S); }
+function reset() { items = []; sugg.replaceChildren(); $('omni').classList.remove('on'); body.classList.remove('overlay'); finishing = true; field.blur(); finishing = false; }
+// Leaving the field redraws nothing: a re-render here swaps the element the
+// mouse is over between press and release, and the click (a tab, +) is lost.
+function finish(cancel) { reset(); post({ cmd: 'done', cancel: !!cancel }); }
 
 field.oninput = query;
 // Switching to another window is not leaving the box.
@@ -388,7 +401,7 @@ field.onkeydown = e => {
     sel = (sel + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length;
     [...sugg.children].forEach((li, i) => li.classList.toggle('on', i === sel));
   } else if (e.key === 'Enter') { e.preventDefault(); pick(items[sel]); }
-  else if (e.key === 'Escape') { e.preventDefault(); finish(); }
+  else if (e.key === 'Escape') { e.preventDefault(); finish(true); }
 };
 field.onfocus = () => { if (!body.classList.contains('overlay') && mode !== 'tabs') { mode = 'here'; query(); } };
 
@@ -499,9 +512,8 @@ function settings(o) {
   sec('start', 'General');
   row('On startup', o.startup === 'new' ? 'Pinned tabs are kept' : 'Tabs load when you click them',
       seg('startup', o.startup, [['continue', 'Continue where I left off'], ['new', 'New tab']]));
-  const known = o.engines.some(([, url]) => url === o.engine);
   row('Search engine', 'Used in the address bar',
-      select((known ? o.engines : [...o.engines, ['Custom', o.engine]]).map(([n, u]) => [u, n]), o.engine, v => set('engine', v)));
+      select(o.engines.map(([n, u]) => [u, n]), o.engine, v => set('engine', v)));
   sub('Import and export');
   if (o.sources.length) row('From another browser', 'Bookmarks and history', group(...o.sources.map((label, i) => btn(label, () => set('import', 1000 + i)))));
   row('From a file', 'A bookmarks .html file', btn('Choose file…', () => set('import', 40)));
@@ -509,7 +521,6 @@ function settings(o) {
       group(btn('Bookmarks', () => set('import', 41), !o.bookmarks), btn('History', () => set('import', 42), !o.history)));
 
   sec('appearance', 'Appearance');
-  row('Tabs', 'Ctrl+Shift+S', seg('top', o.top, [[true, 'Top'], [false, 'Left']]));
   row('Hide the tabs', 'Ctrl+S shows them again', sw('folded', o.folded));
   row('Page zoom', 'Ctrl+plus and Ctrl+minus change one tab',
       select([0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2].map(z => [String(z), Math.round(z * 100) + '%']),

@@ -6,7 +6,7 @@ and the status column kept true.
 ## The idea, in one paragraph
 
 A browser that gets out of the way and costs almost nothing to run. One window:
-a row of tabs (left or top) in place of Windows' title bar, one field, and the
+a row of tabs across the top in place of Windows' title bar, one field, and the
 page. Native Windows engine (WebView2), Rust host of a few MB, Brave-grade ad
 blocking on by default. Every feature earns its place by being something people
 reach for daily in Chrome, Edge, Brave or Arc; anything else is left out.
@@ -26,7 +26,7 @@ reach for daily in Chrome, Edge, Brave or Arc; anything else is left out.
 5. **Private by default, no account, no telemetry.** The only traffic of ours is
    the filter-list refresh.
 6. **Every setting has a default that's right for most people.** Settings exist for
-   real disagreements (tab position, search engine), not to hide unfinished work.
+   real disagreements (search engine), not to hide unfinished work.
 
 ## Ad blocking ("Shields") — parity with Brave Standard
 
@@ -49,9 +49,9 @@ reach for daily in Chrome, Edge, Brave or Arc; anything else is left out.
 
 | What | Status |
 |---|---|
-| Tabs left (sidebar) or top, switchable (Ctrl+Shift+S), hideable (Ctrl+S) | ✅ |
-| `+` right after the last tab; New Tab is a real tab that costs nothing until used | ✅ |
-| Right-click menu: New tab to the right, Reload, Duplicate, Pin/Unpin, Mute/Unmute, Split view with ▸, Separate split view, Bookmark, Copy link, Close, Close other tabs, Close tabs to the right/below | ✅ |
+| Tabs across the top, hideable (Ctrl+S) | ✅ |
+| `+` right after the last tab; a new tab stays until Esc on one nobody has typed into | ✅ |
+| Right-click menu: New tab to the right, Reload, Duplicate, Pin/Unpin, Mute/Unmute, Split view with ▸, Separate split view, Bookmark, Copy link, Close, Close other tabs, Close tabs to the right | ✅ |
 | Pinned tabs as icons, first in the row | ✅ |
 | Audio indicator on tabs playing sound; click it to mute | ✅ |
 | Split view: two tabs side by side, draggable divider, the clicked pane gets the keys, pairs kept across restarts | ✅ |
@@ -63,16 +63,16 @@ reach for daily in Chrome, Edge, Brave or Arc; anything else is left out.
 
 | What | Status |
 |---|---|
-| One field: address or search, suggestions from open tabs, bookmarks, history | ✅ |
-| Search engine choice (Google, DuckDuckGo, Bing, Brave, Startpage, Ecosia, Kagi, Qwant) | ✅ |
+| The bar is the field: address or search, suggestions from open tabs, bookmarks, history | ✅ |
+| Search engine choice (Google, DuckDuckGo, Bing, Startpage, Ecosia, Kagi, Qwant) | ✅ |
 | Live search suggestions from the engine (sends keystrokes: off by default) | later |
-| Back/forward/reload buttons for mouse users | later |
+| Back/forward/reload buttons for mouse users | ✅ |
 
 ## Settings (Ctrl+, or ⚙)
 
 One panel, sections in this order, every change applies immediately and is saved:
 
-1. **Appearance** — Tabs on the left / across the top; hide the tab bar.
+1. **Appearance** — Hide the tab bar; page zoom.
 2. **Search** — Search engine.
 3. **On startup** — Continue where you left off / Open a new tab (pinned tabs kept).
 4. **Shields** — Block ads and trackers; Block cookie notices; Sites with Shields
