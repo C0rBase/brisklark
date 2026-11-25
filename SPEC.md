@@ -92,4 +92,4 @@ Everything in the README table ✅, plus `Ctrl+,` settings ✅.
 
 - `cargo test` passes; filter-list tests pass against the real lists (`-- --ignored`).
 - Release build launches, restores the session, and the host stays small.
-- New UI checked in both tab layouts and in light and dark.
+- New UI checked in light and dark, and with the tabs folded away.
