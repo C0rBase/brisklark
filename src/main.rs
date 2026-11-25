@@ -45,6 +45,8 @@ const BAR: f64 = 72.0; // tabs across the top: the tab row and the toolbar under
 const HISTORY_CAP: usize = 5000;
 const BLANK: &str = "about:blank"; // a new tab nobody has typed into yet
 const GAP: f64 = 6.0; // the divider between the two pages of a split view
+/// Turns a page, or the selection in it, into Markdown; see markdown.js.
+const MARKDOWN: &str = include_str!("markdown.js");
 
 // ---------- what is kept on disk ----------
 
@@ -57,6 +59,8 @@ struct Saved {
     /// Two saved tabs with the same nonzero number are a split view.
     #[serde(default)]
     pair: u32,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    icon: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -73,7 +77,11 @@ struct State {
     tabs: Vec<Saved>,
     active: usize,
     bookmarks: Vec<Saved>,
+    parked: Vec<Saved>,
     folded: bool,
+    home_shortcuts: bool,
+    home_icon_size: u32,
+    home_labels: bool,
     engine: String,
     startup: String, // "continue" or "new"
     shields: bool,
@@ -96,7 +104,11 @@ impl Default for State {
             tabs: vec![],
             active: 0,
             bookmarks: vec![],
+            parked: vec![],
             folded: false,
+            home_shortcuts: true,
+            home_icon_size: 48,
+            home_labels: true,
             engine: "https://www.google.com/search?q=%s".into(),
             startup: "continue".into(),
             shields: true,
@@ -115,8 +127,78 @@ impl Default for State {
     }
 }
 
+impl State {
+    fn edit_bookmark(&mut self, original: Option<&str>, title: &str, text: &str) -> Result<(), &'static str> {
+        let url = bookmark_url(text)?;
+        let title = title.trim();
+        if title.chars().count() > 200 {
+            return Err("Keep the name to 200 characters or fewer.");
+        }
+        let index = match original {
+            Some(old) => Some(self.bookmarks.iter().position(|b| b.url == old)
+                .ok_or("This bookmark no longer exists. Close this editor and try again.")?),
+            None => None,
+        };
+        if self.bookmarks.iter().enumerate().any(|(i, b)| Some(i) != index && b.url == url) {
+            return Err("That website is already bookmarked.");
+        }
+        let title = if title.is_empty() { host(&url).to_string() } else { title.into() };
+        if let Some(i) = index {
+            let b = &mut self.bookmarks[i];
+            if b.url != url { b.icon.clear(); }
+            (b.url, b.title) = (url, title);
+        } else {
+            self.bookmarks.push(Saved { url, title, ..Default::default() });
+        }
+        Ok(())
+    }
+
+    fn start_private(&mut self) {
+        self.tabs.clear();
+        self.active = 0;
+        self.folded = false;
+        self.passwords = false;
+        self.autofill = false;
+        self.ext_paths.clear();
+    }
+}
+
 pub(crate) fn dir(var: &str) -> PathBuf {
     PathBuf::from(std::env::var(var).unwrap_or_else(|_| ".".into())).join("Brisklark")
+}
+
+/// A private window gets a WebView2 folder of its own: two processes cannot
+/// share one, and this keeps its cookies and cache away from the normal window.
+fn private_dir() -> PathBuf {
+    dir("LOCALAPPDATA").join("Private")
+}
+
+fn process_alive(pid: u32) -> bool {
+    use windows::Win32::{
+        Foundation::CloseHandle,
+        System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION},
+    };
+    unsafe {
+        match OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) {
+            Ok(h) => {
+                let _ = CloseHandle(h);
+                true
+            }
+            Err(_) => false,
+        }
+    }
+}
+
+/// Private folders belong to windows that may be gone (a crash, a power cut).
+fn sweep_private() {
+    let Ok(entries) = fs::read_dir(private_dir()) else { return };
+    for e in entries.flatten() {
+        let name = e.file_name().to_string_lossy().into_owned();
+        let stale = name.parse::<u32>().map_or(true, |pid| pid != std::process::id() && !process_alive(pid));
+        if stale {
+            let _ = fs::remove_dir_all(e.path());
+        }
+    }
 }
 
 fn load<T: for<'a> Deserialize<'a> + Default>(name: &str) -> T {
@@ -178,6 +260,25 @@ fn resolve(text: &str, engine: &str) -> String {
     engine.replace("%s", &encode(t))
 }
 
+fn bookmark_url(text: &str) -> Result<String, &'static str> {
+    let text = text.trim();
+    let error = "Enter a valid http:// or https:// website address, such as example.com.";
+    if text.is_empty() || text.len() > 8192 || text.chars().any(|c| c.is_whitespace() || c.is_control()) {
+        return Err(error);
+    }
+    let url = if text.contains("://") { text.to_string() } else { format!("https://{text}") };
+    // Fragments are part of the saved link, but not of an HTTP request URI.
+    let uri: wry::http::Uri = url.split('#').next().unwrap_or("").parse().map_err(|_| error)?;
+    let authority = uri.authority().ok_or(error)?;
+    if !matches!(uri.scheme_str(), Some("http" | "https"))
+        || uri.host().is_none_or(str::is_empty)
+        || authority.as_str().contains('@')
+        || (authority.as_str().len() > authority.host().len() && authority.port_u16().is_none()) {
+        return Err(error);
+    }
+    Ok(url)
+}
+
 // ---------- keys ----------
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -185,7 +286,8 @@ enum Cmd {
     Field,    // Ctrl+L
     Switch,   // Ctrl+K
     NewTab,   // Ctrl+T
-    Private,  // Ctrl+Shift+N
+    Private,
+    PrivateWindow, // Ctrl+Shift+N
     Close,    // Ctrl+W
     Reopen,   // Ctrl+Shift+T
     Back,     // Ctrl+[
@@ -197,6 +299,7 @@ enum Cmd {
     Bookmark, // Ctrl+Shift+B
     Duplicate, // Ctrl+D
     CopyUrl,  // Ctrl+Shift+C
+    Markdown, // Ctrl+Shift+M
     PasteGo,  // Ctrl+Shift+V
     History,  // Ctrl+Y
     Bookmarks, // Ctrl+Shift+O
@@ -222,13 +325,14 @@ fn shortcut(vk: u32, ctrl: bool, shift: bool, alt: bool) -> Option<Cmd> {
         ('L', false) => Field,
         ('K', false) => Switch,
         ('T', false) => NewTab,
-        ('N', true) => Private,
+        ('N', true) => PrivateWindow,
         ('W', false) => Close,
         ('T', true) => Reopen,
         ('S', false) => Fold,
         ('B', true) => Bookmark,
         ('D', false) => Duplicate,
         ('C', true) => CopyUrl,
+        ('M', true) => Markdown,
         ('V', true) => PasteGo,
         ('Y', false) => History,
         ('O', true) => Bookmarks,
@@ -281,7 +385,7 @@ enum Ev {
     Title(u32, String),
     Url(u32, String),
     Loaded(u32, String),
-    Open(String, bool),
+    Open(u32, String, bool),
     Shield(Option<shield::Compiled>), // fresh lists (None: download failed)
     Audio(u32, bool, bool),                 // playing, muted
     Icon(u32, String),                      // the page's favicon address
@@ -409,6 +513,26 @@ struct App {
     dirty: bool,
     last_save: Instant,
     quit: bool,
+    private_window: bool,
+    private_profile: String,
+}
+
+fn private_profile_name() -> String {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    let time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos();
+    format!("Private-{}-{time}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed))
+}
+
+/// Wry silently ignores InPrivate on old runtimes: never navigate in that case.
+fn is_in_private(view: &WebView) -> bool {
+    unsafe {
+        let mut enabled = BOOL(0);
+        view.webview().cast::<ICoreWebView2_13>()
+            .and_then(|w| w.Profile())
+            .and_then(|p| p.IsInPrivateModeEnabled(&mut enabled))
+            .is_ok() && enabled.as_bool()
+    }
 }
 
 fn rect(x: f64, y: f64, w: f64, h: f64) -> Rect {
@@ -424,6 +548,10 @@ impl App {
     }
     fn current(&self) -> Option<&Tab> {
         self.active.and_then(|id| self.tabs.iter().find(|t| t.id == id))
+    }
+
+    fn on_start(&self) -> bool {
+        self.current().is_none_or(|t| t.url == BLANK)
     }
 
     /// Where pages go: x, y, width, height in logical pixels.
@@ -442,7 +570,7 @@ impl App {
 
     fn layout(&mut self) {
         let s = self.window.inner_size().to_logical::<f64>(self.window.scale_factor());
-        let chrome = if self.overlay {
+        let chrome = if self.overlay || self.on_start() {
             rect(0.0, 0.0, s.width, s.height)
         } else if self.state.folded || self.full {
             rect(0.0, 0.0, 0.0, 0.0)
@@ -450,7 +578,7 @@ impl App {
             rect(0.0, 0.0, s.width, BAR)
         };
         let _ = self.chrome.set_bounds(chrome);
-        let _ = self.chrome.set_visible(self.overlay || !(self.state.folded || self.full));
+        let _ = self.chrome.set_visible(self.overlay || self.on_start() || !(self.state.folded || self.full));
         if self.overlay {
             // The field's list hangs over the page: the bar's own window has to
             // sit above the tab's, which was created after it.
@@ -505,7 +633,7 @@ impl App {
         let (shield, opener) = (self.shield.clone(), page.url.clone());
         // Every tab shares the sidebar's environment: one Edge browser process
         // for the whole app. Private tabs are an InPrivate controller on it.
-        let built = WebViewBuilder::new()
+        let builder = WebViewBuilder::new()
             .with_environment(self.env.clone())
             .with_incognito(private)
             .with_bounds(self.page_rect())
@@ -528,14 +656,21 @@ impl App {
                 if shield.borrow().popup_blocked(&url, &opener.borrow()) {
                     return NewWindowResponse::Deny;
                 }
-                if features.size.is_some() {
+                // Private popups stay in a managed InPrivate tab. Unmanaged
+                // popups could otherwise outlive the last private tab.
+                if features.size.is_some() && !private {
                     return NewWindowResponse::Allow;
                 }
-                let _ = p3.send_event(Ev::Open(url, private));
+                let _ = p3.send_event(Ev::Open(id, url, private));
                 NewWindowResponse::Deny
-            })
-            .build_as_child(&self.window);
+            });
+        let builder = if private { builder.with_profile_name(&self.private_profile) } else { builder };
+        let built = builder.build_as_child(&self.window);
         if let Ok(view) = built {
+            if private && !is_in_private(&view) {
+                self.message("Private browsing unavailable", "Update Microsoft Edge WebView2 to use private browsing. This page was not opened.");
+                return;
+            }
             hook_keys(&view, self.proxy.clone());
             hook_tab(&view, id, self.proxy.clone());
             shield::attach(&view, self.shield.clone(), page);
@@ -546,6 +681,8 @@ impl App {
             // Only now the first page: Shields must be in place before it starts.
             let _ = view.load_url(&url);
             self.tabs[i].view = Some(view);
+        } else {
+            self.message("Page could not open", "Brisklark could not create the page. Try again, or update Microsoft Edge WebView2.");
         }
     }
 
@@ -572,9 +709,10 @@ impl App {
     }
 
     fn add_tab(&mut self, url: String, private: bool, at: Option<usize>) -> u32 {
+        let private = private || self.private_window;
         let id = self.next;
         self.next += 1;
-        let title = if url == BLANK { "New Tab".into() } else { url.clone() };
+        let title = if url == BLANK { if private { "New Private Tab" } else { "New Tab" }.into() } else { url.clone() };
         let tab = Tab {
             id, title, url, pinned: false, private, view: None,
             page: Default::default(), audio: false, muted: false, partner: None, loading: false, icon: String::new(),
@@ -595,6 +733,14 @@ impl App {
         }
         if !tab.private && tab.url != BLANK {
             self.closed.push(Saved { url: tab.url, title: tab.title, ..Default::default() });
+        }
+        if tab.private && !self.tabs.iter().any(|t| t.private) {
+            // A later private session must never reuse the old session's cookies.
+            self.private_profile = private_profile_name();
+        }
+        if self.private_window && self.tabs.is_empty() {
+            self.quit = true;
+            return;
         }
         if self.active == Some(id) {
             self.active = None;
@@ -661,12 +807,18 @@ impl App {
         });
         let live = self.current().is_some_and(|t| t.view.is_some());
         let loading = self.current().is_some_and(|t| t.loading);
+        let home = (self.on_start() && !self.private_window && !self.current().is_some_and(|t| t.private)).then(|| {
+            json!({"bookmarks": self.state.bookmarks, "show": self.state.home_shortcuts,
+                   "size": self.state.home_icon_size, "labels": self.state.home_labels})
+        });
         self.eval("render", json!({"tabs": tabs, "folded": self.state.folded, "overlay": self.overlay,
+                                   "home": home,
+                                   "privateWindow": self.private_window,
                                    "bookmarked": marked, "shields": shields, "blocked": blocked,
                                    "back": back, "forward": forward, "live": live, "loading": loading,
                                    "store": self.current().and_then(|t| ext::store_id(&t.url)).is_some(), "installing": self.installing}));
         let title = self.current().map_or("Brisklark".into(), |t| t.title.clone());
-        self.window.set_title(&title);
+        self.window.set_title(&if self.current().is_some_and(|t| t.private) { format!("{title} — Private — Brisklark") } else { title });
     }
 
     fn focus_field(&mut self, mode: &str) {
@@ -728,9 +880,10 @@ impl App {
         }
         // Tabs answer a query, or the tab switcher; never the tab you are on.
         if tabs_only || !q.is_empty() {
-            for t in self.tabs.iter().filter(|t| Some(t.id) != self.active && hit(&t.title, &t.url))
+            let private = self.current().is_some_and(|t| t.private) || self.private_window;
+            for t in self.tabs.iter().filter(|t| t.private == private && Some(t.id) != self.active && hit(&t.title, &t.url))
                 .take(if tabs_only { 20 } else { 3 }) {
-                out.push(json!({"kind": "tab", "id": t.id, "title": t.title, "url": t.url}));
+                out.push(json!({"kind": "tab", "id": t.id, "title": t.title, "url": t.url, "private": t.private}));
             }
         }
         if !tabs_only && !q.is_empty() {
@@ -755,6 +908,9 @@ impl App {
             let mut h: Vec<&Visit> = self.history.iter().filter(|v| hit(&v.title, &v.url)).collect();
             h.sort_by(|a, b| b.last.cmp(&a.last));
             h.iter().take(300).map(|v| json!({"title": v.title, "url": v.url, "last": v.last})).collect()
+        } else if kind == "parked" {
+            self.state.parked.iter().rev().filter(|p| hit(&p.title, &p.url))
+                .map(|p| json!({"title": p.title, "url": p.url})).collect()
         } else {
             self.state.bookmarks.iter().rev().filter(|b| hit(&b.title, &b.url))
                 .map(|b| json!({"title": b.title, "url": b.url})).collect()
@@ -771,15 +927,18 @@ impl App {
             Cmd::Field => self.focus_field("here"),
             Cmd::Switch => self.focus_field("tabs"),
             Cmd::NewTab | Cmd::Private => {
-                let id = self.add_tab(BLANK.into(), cmd == Cmd::Private, None);
+                let private = cmd == Cmd::Private || self.current().is_some_and(|t| t.private);
+                let id = self.add_tab(BLANK.into(), private, None);
                 self.select(id);
             }
+            Cmd::PrivateWindow => self.open_private_window(),
             Cmd::Close => {
                 if let Some(id) = self.active {
                     self.close(id)
                 }
             }
             Cmd::Reopen => {
+                if self.current().is_some_and(|t| t.private) || self.private_window { return; }
                 if let Some(s) = self.closed.pop() {
                     let id = self.add_tab(s.url, false, None);
                     self.select(id);
@@ -827,6 +986,7 @@ impl App {
                     let _ = c.set_text(t.url.clone());
                 }
             }
+            Cmd::Markdown => self.markdown(),
             Cmd::PasteGo => {
                 if let Some(text) = arboard::Clipboard::new().ok().and_then(|mut c| c.get_text().ok()) {
                     self.go(&text, false, false);
@@ -857,6 +1017,15 @@ impl App {
         }
     }
 
+    fn open_private_window(&self) {
+        let result = std::env::current_exe().and_then(|exe| {
+            std::process::Command::new(exe).arg("--private").spawn()
+        });
+        if let Err(e) = result {
+            self.message("Private window could not open", &e.to_string());
+        }
+    }
+
     fn pin(&mut self, id: u32) {
         if let Some(i) = self.idx(id).filter(|&i| !self.tabs[i].private && self.tabs[i].url != BLANK) {
             let mut t = self.tabs.remove(i);
@@ -871,10 +1040,10 @@ impl App {
 
     fn bookmark(&mut self, id: u32) {
         let Some(t) = self.idx(id).map(|i| &self.tabs[i]).filter(|t| !t.private && t.url != BLANK) else { return };
-        let (url, title) = (t.url.clone(), t.title.clone());
+        let (url, title, icon) = (t.url.clone(), t.title.clone(), t.icon.clone());
         match self.state.bookmarks.iter().position(|b| b.url == url) {
             Some(i) => drop(self.state.bookmarks.remove(i)),
-            None => self.state.bookmarks.push(Saved { url, title, ..Default::default() }),
+            None => self.state.bookmarks.push(Saved { url, title, icon, ..Default::default() }),
         }
         self.dirty = true;
         self.render();
@@ -925,6 +1094,71 @@ impl App {
         }
     }
 
+    /// Tabs that repeat a page another tab already has, keeping the active one
+    /// of each group (or the first when none of them is active).
+    fn duplicate_ids(&self) -> Vec<u32> {
+        let mut keep: HashMap<(&str, bool), u32> = HashMap::new();
+        let mut out = vec![];
+        for t in &self.tabs {
+            if t.pinned || t.url == BLANK {
+                continue;
+            }
+            match keep.get(&(t.url.as_str(), t.private)) {
+                Some(&id) => {
+                    if Some(t.id) == self.active {
+                        out.push(id);
+                        keep.insert((t.url.as_str(), t.private), t.id);
+                    } else {
+                        out.push(t.id);
+                    }
+                }
+                None => {
+                    keep.insert((t.url.as_str(), t.private), t.id);
+                }
+            }
+        }
+        out
+    }
+
+    fn dedupe(&mut self) {
+        for id in self.duplicate_ids() {
+            self.close(id);
+        }
+    }
+
+    /// Tabs to the side, kept on disk and free of memory until opened again.
+    fn park(&mut self, ids: Vec<u32>) {
+        for id in ids {
+            let Some(i) = self.idx(id) else { continue };
+            let t = &self.tabs[i];
+            if t.private || t.url == BLANK {
+                continue;
+            }
+            let (url, title) = (t.url.clone(), t.title.clone());
+            if !self.state.parked.iter().any(|p| p.url == url) {
+                self.state.parked.push(Saved { url, title, ..Default::default() });
+            }
+            self.close(id);
+        }
+        self.dirty = true;
+    }
+
+    /// The selection, or the whole page, as Markdown on the clipboard.
+    fn markdown(&mut self) {
+        let Some(view) = self.current().and_then(|t| t.view.as_ref()) else { return };
+        let _ = view.evaluate_script_with_callback(MARKDOWN, |raw| {
+            let Ok(v) = serde_json::from_str::<Value>(&raw) else { return };
+            if v["ok"] != true {
+                return;
+            }
+            let Some(md) = v["md"].as_str() else { return };
+            let text: String = md.chars().take(200_000).collect();
+            if let Ok(mut c) = arboard::Clipboard::new() {
+                let _ = c.set_text(text);
+            }
+        });
+    }
+
     fn popup(&self, items: &[M]) -> u32 {
         menu::popup(self.window.hwnd(), self.window.theme() == Theme::Dark, items)
     }
@@ -945,6 +1179,7 @@ impl App {
         let marked = self.state.bookmarks.iter().any(|b| b.url == url);
         let after: Vec<u32> = self.tabs[i + 1..].iter().filter(|o| !o.pinned).map(|o| o.id).collect();
         let rest: Vec<u32> = self.tabs.iter().filter(|o| o.id != id && !o.pinned).map(|o| o.id).collect();
+        let dups = self.duplicate_ids();
         let items = [
             M::Item(1, "New tab to the right".into(), true),
             M::Sep,
@@ -958,6 +1193,11 @@ impl App {
             M::Sep,
             M::Item(7, if marked { "Remove bookmark" } else { "Bookmark" }.into(), !private && !blank),
             M::Item(8, "Copy link".into(), !blank),
+            M::Item(12, "Copy as Markdown".into(), live),
+            M::Sep,
+            M::Item(13, "Park".into(), !private && !blank),
+            M::Item(14, "Park other tabs".into(), !rest.is_empty()),
+            M::Item(15, if dups.is_empty() { "Close duplicate tabs".into() } else { format!("Close duplicate tabs ({})", dups.len()) }, !dups.is_empty()),
             M::Sep,
             M::Item(9, "Close".into(), true),
             M::Item(10, "Close other tabs".into(), !rest.is_empty()),
@@ -990,6 +1230,10 @@ impl App {
             9 => self.close(id),
             10 => self.close_all(rest, id),
             11 => self.close_all(after, id),
+            12 => self.markdown(),
+            13 => self.park(vec![id]),
+            14 => self.park(rest),
+            15 => self.dedupe(),
             k if k >= 100 => {
                 if let Some(&(other, _)) = others.get(k as usize - 100) {
                     self.pair(id, other);
@@ -1004,8 +1248,9 @@ impl App {
         unsafe {
             let Ok(p) = view.webview().cast::<ICoreWebView2_13>().and_then(|w| w.Profile()) else { return };
             if let Ok(p6) = p.cast::<ICoreWebView2Profile6>() {
-                let _ = p6.SetIsPasswordAutosaveEnabled(self.state.passwords);
-                let _ = p6.SetIsGeneralAutofillEnabled(self.state.autofill);
+                let private = is_in_private(view);
+                let _ = p6.SetIsPasswordAutosaveEnabled(self.state.passwords && !private);
+                let _ = p6.SetIsGeneralAutofillEnabled(self.state.autofill && !private);
             }
             if !self.state.downloads.is_empty() {
                 let _ = p.SetDefaultDownloadFolderPath(&HSTRING::from(self.state.downloads.as_str()));
@@ -1036,6 +1281,7 @@ impl App {
     }
 
     fn ext_profile(&self) -> Option<ICoreWebView2Profile7> {
+        if self.private_window { return None; }
         ext::profile(&self.chrome.webview())
     }
 
@@ -1047,6 +1293,10 @@ impl App {
 
     /// From a Web Store link (or a bare id): downloaded on a thread, then added.
     fn install(&mut self, text: &str) {
+        if self.private_window {
+            self.message("Extensions", "Manage extensions in a regular window. Extensions are unavailable in private windows.");
+            return;
+        }
         let text = text.trim();
         let id = ext::store_id(text).or_else(|| {
             (text.len() == 32 && text.bytes().all(|b| (b'a'..=b'p').contains(&b))).then(|| text.to_string())
@@ -1136,6 +1386,7 @@ impl App {
         let d = State::default();
         let s = &mut self.state;
         (s.folded, s.engine, s.startup) = (d.folded, d.engine, d.startup);
+        (s.home_shortcuts, s.home_icon_size, s.home_labels) = (d.home_shortcuts, d.home_icon_size, d.home_labels);
         (s.shields, s.cookie_notices, s.shields_off, s.shield) = (d.shields, d.cookie_notices, d.shields_off, d.shield);
         (s.passwords, s.autofill, s.downloads, s.zoom, s.gpu, s.language) = (d.passwords, d.autofill, d.downloads, d.zoom, d.gpu, d.language);
         {
@@ -1244,7 +1495,8 @@ impl App {
         ]);
         let items = [
             M::Item(1, "New tab\tCtrl+T".into(), true),
-            M::Item(2, "New private tab\tCtrl+Shift+N".into(), true),
+            M::Item(2, "New private window\tCtrl+Shift+N".into(), true),
+            M::Item(14, "New private tab".into(), true),
             M::Sep,
             M::Item(3, "History\tCtrl+Y".into(), true),
             M::Item(4, "Bookmarks\tCtrl+Shift+O".into(), true),
@@ -1273,6 +1525,7 @@ impl App {
             M::Item(7, "Print…\tCtrl+P".into(), live),
             M::Item(8, "Find on page…\tCtrl+F".into(), live),
             M::Item(9, "Save page as…".into(), live),
+            M::Item(13, "Copy as Markdown\tCtrl+Shift+M".into(), live),
             M::Sep,
             M::Item(12, "Developer tools\tF12".into(), live),
             M::Sep,
@@ -1285,12 +1538,17 @@ impl App {
 
     /// What the ⋯ menu's items (and the matching buttons in Settings) do.
     fn menu_action(&mut self, k: u32) {
+        if self.private_window && (matches!(k, 40..=42 | 50..=51) || k >= 200) {
+            self.message("Private window", "Manage extensions, imports and exports in a regular window.");
+            return;
+        }
         let sources = import::sources();
         let hwnd = self.window.hwnd();
         let view = self.current().and_then(|t| t.view.as_ref()).map(|v| v.webview());
         match k {
             1 => self.command(Cmd::NewTab),
-            2 => self.command(Cmd::Private),
+            2 => self.command(Cmd::PrivateWindow),
+            14 => self.command(Cmd::Private),
             3 => self.command(Cmd::History),
             4 => self.command(Cmd::Bookmarks),
             5 => self.downloads(),
@@ -1312,7 +1570,7 @@ impl App {
                     v.open_devtools();
                 }
             }
-            13 => {}
+            13 => self.markdown(),
             11 => self.quit = true,
             30 => self.set_zoom(1),
             31 => self.set_zoom(-1),
@@ -1379,14 +1637,15 @@ impl App {
         let Some(i) = self.active.and_then(|id| self.idx(id)) else { return };
         let url = self.tabs[i].url.clone();
         let site = host(&url).to_ascii_lowercase();
-        let web = url.starts_with("http");
+        // A private site's name must not end up in the persisted exceptions list.
+        let web = url.starts_with("http") && (!self.tabs[i].private || self.private_window);
         let (on, up) = {
             let s = self.shield.borrow();
             (s.on, s.up_for(&url))
         };
         let n = self.tabs[i].page.blocked.get();
         let items = [
-            M::Check(1, if web { format!("Shields up for {}", site.trim_start_matches("www.")) } else { "Shields work on web pages".into() }, web && up, web && on),
+            M::Check(1, if web { format!("Shields up for {}", site.trim_start_matches("www.")) } else if self.tabs[i].private { "Site exceptions are unavailable in private tabs".into() } else { "Shields work on web pages".into() }, up, web && on),
             M::Item(0, if on { format!("{n} ads and trackers blocked on this page") } else { "Shields are off in Settings".into() }, false),
             M::Sep,
             M::Item(2, "Shields settings…".into(), true),
@@ -1423,14 +1682,18 @@ impl App {
         }).collect();
         let sources: Vec<String> = import::sources().into_iter().map(|s| s.label).collect();
         let o = json!({"folded": self.state.folded, "engine": self.state.engine,
+            "home": {"show": self.state.home_shortcuts, "size": self.state.home_icon_size, "labels": self.state.home_labels},
+            "privateWindow": self.private_window,
             "engines": ENGINES, "startup": self.state.startup, "shields": s.on,
             "cookies": self.state.cookie_notices, "off": off, "updated": updated, "updating": self.updating,
             "version": env!("CARGO_PKG_VERSION"),
             "prefs": self.state.shield, "lists": lists(&self.state).options(), "sources": sources,
             "exts": exts, "installing": self.installing, "extsOk": self.ext_profile().is_some(),
-            "passwords": self.state.passwords, "autofill": self.state.autofill,
+            "passwords": self.state.passwords && !self.private_window, "autofill": self.state.autofill && !self.private_window,
             "downloads": self.download_folder(), "zoom": self.state.zoom, "gpu": self.state.gpu,
-            "language": self.state.language, "bookmarks": self.state.bookmarks.len(), "history": self.history.len()});
+            "language": self.state.language, "bookmarks": self.state.bookmarks.len(), "history": self.history.len(),
+            "dups": self.duplicate_ids().len(), "parked": self.state.parked.len(),
+            "live": self.current().is_some_and(|t| t.view.is_some())});
         if open {
             self.eval("settings", o);
         } else {
@@ -1439,8 +1702,20 @@ impl App {
     }
 
     fn set(&mut self, key: &str, v: &Value) {
+        if self.private_window && (key.starts_with("ext-") || key == "import") {
+            self.message("Private window", "Manage extensions, imports and exports in a regular window.");
+            return;
+        }
         let b = v.as_bool().unwrap_or(false);
         match key {
+            "home-shortcuts" => self.state.home_shortcuts = b,
+            "home-labels" => self.state.home_labels = b,
+            "home-icon-size" => {
+                if let Some(size @ (32 | 48 | 64)) = v.as_u64() { self.state.home_icon_size = size as u32; }
+                else { return; }
+            }
+            "private-window" => self.open_private_window(),
+            "private-tab" => { self.command(Cmd::Private); return; }
             "folded" => {
                 self.state.folded = b;
                 self.layout();
@@ -1520,6 +1795,14 @@ impl App {
                 self.quit = true;
             }
             "reset" => self.reset(),
+            "copy-md" => self.markdown(),
+            "dedupe" => self.dedupe(),
+            "parked" => {
+                self.overlay = true;
+                self.layout();
+                let _ = self.chrome.focus();
+                self.panel("parked", "");
+            }
             "import" => {
                 let k = v.as_u64().unwrap_or(0) as u32;
                 self.menu_action(if k >= 1000 { k - 1000 + 200 } else { k });
@@ -1550,7 +1833,8 @@ impl App {
             "open" => {
                 let url = v.as_str().unwrap_or("").to_string();
                 if url.starts_with("https://") {
-                    let t = self.add_tab(url, false, None);
+                    let private = self.current().is_some_and(|t| t.private);
+                    let t = self.add_tab(url, private, None);
                     self.select(t);
                 }
             }
@@ -1566,7 +1850,7 @@ impl App {
     /// uBO's scriptlets come from uBO's own source, read by a hidden page on the
     /// shared Edge process; it goes away as soon as it has answered.
     fn fetch_ubo(&mut self, force: bool) {
-        if self.ubo.is_some() || !(force || shield::ubo_stale()) {
+        if self.private_window || self.ubo.is_some() || !(force || shield::ubo_stale()) {
             return;
         }
         let proxy = self.proxy.clone();
@@ -1652,6 +1936,24 @@ impl App {
             "tabmenu" => self.tab_menu(id),
             "mute" => self.mute(id),
             "set" => self.set(&s("key"), &m["value"]),
+            "save-bookmark" => {
+                if self.private_window || self.current().is_some_and(|t| t.private) { return; }
+                match self.state.edit_bookmark(m["original"].as_str(), &s("title"), &s("url")) {
+                    Ok(()) => {
+                        self.dirty = true;
+                        self.eval("bookmarkSaved", json!({"ok": true}));
+                        self.render();
+                    }
+                    Err(error) => self.eval("bookmarkSaved", json!({"error": error})),
+                }
+            }
+            "remove-bookmark" => {
+                if self.private_window || self.current().is_some_and(|t| t.private) { return; }
+                self.state.bookmarks.retain(|b| b.url != s("url"));
+                self.dirty = true;
+                self.eval("bookmarkSaved", json!({"ok": true}));
+                self.render();
+            }
             "suggest" => self.suggest(&s("q"), m["tabs"].as_bool().unwrap_or(false)),
             "panel" => self.panel(&s("kind"), &s("q")),
             "unbookmark" => {
@@ -1661,8 +1963,22 @@ impl App {
                 self.panel("bookmarks", "");
                 self.render();
             }
+            "unpark" => {
+                let url = s("url");
+                self.state.parked.retain(|p| p.url != url);
+                self.dirty = true;
+                self.panel("parked", "");
+            }
+            "open-parked" => {
+                let url = s("url");
+                self.state.parked.retain(|p| p.url != url);
+                self.dirty = true;
+                self.go(&url, true, false);
+            }
             "command" => match s("name").as_str() {
                 "new" => self.command(Cmd::NewTab),
+                "privacy" => self.open_settings_at("privacy"),
+                "home-settings" => self.open_settings_at("home"),
                 "bookmark" => self.command(Cmd::Bookmark),
                 "history" => self.command(Cmd::History),
                 "bookmarks" => self.command(Cmd::Bookmarks),
@@ -1746,7 +2062,13 @@ impl App {
             }
             Ev::Icon(id, uri) => {
                 if let Some(i) = self.idx(id) {
-                    self.tabs[i].icon = uri;
+                    let icon = if uri.len() <= 8192 && (uri.starts_with("https://") || uri.starts_with("http://")) { uri } else { String::new() };
+                    if !self.tabs[i].private {
+                        for b in self.state.bookmarks.iter_mut().filter(|b| b.url == self.tabs[i].url) {
+                            if b.icon != icon { b.icon = icon.clone(); self.dirty = true; }
+                        }
+                    }
+                    self.tabs[i].icon = icon;
                     self.render();
                 }
             }
@@ -1797,20 +2119,25 @@ impl App {
                 self.ubo = None;
                 self.shield.borrow_mut().set_ubo(&json);
             }
-            Ev::Open(url, private) => {
-                let at = self.active.and_then(|id| self.idx(id)).map(|i| i + 1);
-                let id = self.add_tab(url, private, at);
+            Ev::Open(opener, url, private) => {
+                let Some(i) = self.idx(opener) else { return };
+                let id = self.add_tab(url, private, Some(i + 1));
                 self.select(id);
             }
         }
     }
 
     fn persist(&mut self) {
+        if self.private_window {
+            self.dirty = false;
+            self.last_save = Instant::now();
+            return;
+        }
         let kept = |t: &&Tab| !t.private && t.url != BLANK;
         // A split view is saved as a number both halves share.
         let pair = |t: &Tab| t.partner.filter(|p| self.tabs.iter().any(|o| o.id == *p && kept(&o))).map_or(0, |p| p.min(t.id));
         self.state.tabs = self.tabs.iter().filter(kept)
-            .map(|t| Saved { url: t.url.clone(), title: t.title.clone(), pinned: t.pinned, pair: pair(t) }).collect();
+            .map(|t| Saved { url: t.url.clone(), title: t.title.clone(), pinned: t.pinned, pair: pair(t), ..Default::default() }).collect();
         let mut off: Vec<String> = self.shield.borrow().off.iter().cloned().collect();
         off.sort();
         self.state.shields_off = off;
@@ -1848,11 +2175,11 @@ fn lists(s: &State) -> shield::Config {
 }
 
 /// Starts Brisklark again once this one (and its Edge processes) have gone.
-fn relaunch() {
+fn relaunch(private: bool) {
     use std::os::windows::process::CommandExt;
     if let Ok(exe) = std::env::current_exe() {
         let _ = std::process::Command::new("cmd.exe")
-            .raw_arg(format!("/c ping -n 4 127.0.0.1 >nul & start \"\" \"{}\"", exe.display()))
+            .raw_arg(format!("/c ping -n 4 127.0.0.1 >nul & start \"\" \"{}\"{}", exe.display(), if private { " --private" } else { "" }))
             .creation_flags(0x0800_0000)
             .spawn();
     }
@@ -1870,6 +2197,8 @@ fn paint(window: &Window, theme: Theme) {
 }
 
 fn main() {
+    let private_window = std::env::args_os().skip(1).any(|a| a == "--private");
+    let private_profile = private_profile_name();
     let event_loop = EventLoopBuilder::<Ev>::with_user_event().build();
     let proxy = event_loop.create_proxy();
     let window = WindowBuilder::new()
@@ -1887,6 +2216,7 @@ fn main() {
     paint(&window, window.theme());
 
     let mut state: State = load("state.json");
+    if private_window { state.start_private(); }
     // An engine the list no longer offers (Brave Search, a custom address from
     // an older state) goes back to the default.
     if !ENGINES.iter().any(|(_, u)| *u == state.engine) {
@@ -1894,10 +2224,18 @@ fn main() {
     }
     let off: HashSet<String> = state.shields_off.iter().cloned().collect();
     let shield = shield::Shield::load(state.shields, off, state.shield.clone(), &lists(&state));
-    let history: Vec<Visit> = load("history.json");
+    let history: Vec<Visit> = if private_window { vec![] } else { load("history.json") };
     let ipc = proxy.clone();
-    let mut ctx = WebContext::new(Some(dir("LOCALAPPDATA").join("WebView2")));
+    sweep_private();
+    let profile = if private_window {
+        private_dir().join(std::process::id().to_string())
+    } else {
+        dir("LOCALAPPDATA").join("WebView2")
+    };
+    let mut ctx = WebContext::new(Some(profile));
     let chrome = WebViewBuilder::new_with_web_context(&mut ctx)
+        .with_incognito(private_window)
+        .with_profile_name(if private_window { private_profile.as_str() } else { "Default" })
         .with_html(include_str!("chrome.html"))
         .with_default_context_menus(false)
         .with_ipc_handler(move |req| {
@@ -1941,7 +2279,13 @@ fn main() {
         dirty: false,
         last_save: Instant::now(),
         quit: false,
+        private_window,
+        private_profile,
     };
+    if private_window && !is_in_private(&app.chrome) {
+        app.message("Private browsing unavailable", "Update Microsoft Edge WebView2 to use private browsing. No pages were opened.");
+        return;
+    }
     app.apply_profile(&app.chrome);
     app.list_exts();
     // On startup: the last session, or (Settings) just the pinned tabs and a new tab.
@@ -1988,7 +2332,7 @@ fn main() {
                 if app.quit {
                     app.persist();
                     if app.relaunch {
-                        relaunch();
+                        relaunch(app.private_window);
                     }
                     *flow = ControlFlow::Exit;
                 }
@@ -2041,11 +2385,75 @@ mod tests {
     #[test]
     fn keys() {
         assert_eq!(shortcut('L' as u32, true, false, false), Some(Cmd::Field));
+        assert_eq!(shortcut('M' as u32, true, true, false), Some(Cmd::Markdown));
+        assert_eq!(shortcut('M' as u32, true, false, false), None);
         assert_eq!(shortcut('T' as u32, true, true, false), Some(Cmd::Reopen));
+        assert_eq!(shortcut('N' as u32, true, true, false), Some(Cmd::PrivateWindow));
         assert_eq!(shortcut('9' as u32, true, false, false), Some(Cmd::Nth(usize::MAX)));
         assert_eq!(shortcut(0x09, true, true, false), Some(Cmd::PrevTab));
         assert_eq!(shortcut('L' as u32, false, false, false), None);
         assert_eq!(shortcut('F' as u32, true, false, false), None); // WebView2's own find
         assert_eq!(shortcut(0xBC, true, false, false), Some(Cmd::Settings));
+    }
+
+    #[test]
+    fn private_start_does_not_restore_regular_tabs_or_autofill() {
+        let mut state = State::default();
+        state.tabs.push(Saved { url: "https://regular.example/".into(), pinned: true, ..Default::default() });
+        state.bookmarks = state.tabs.clone();
+        state.active = 7;
+        state.folded = true;
+        state.ext_paths.insert("extension".into(), "folder".into());
+        state.start_private();
+        assert!(state.tabs.is_empty());
+        assert_eq!(state.active, 0);
+        assert!(!state.folded && !state.passwords && !state.autofill);
+        assert!(state.ext_paths.is_empty());
+        assert_eq!(state.bookmarks[0].url, "https://regular.example/");
+        assert_eq!(state.engine, State::default().engine);
+    }
+
+    #[test]
+    fn private_sessions_never_reuse_a_profile_name() {
+        let names: HashSet<_> = (0..100).map(|_| private_profile_name()).collect();
+        assert_eq!(names.len(), 100);
+        assert!(names.iter().all(|s| s.starts_with("Private-") && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')));
+    }
+
+    #[test]
+    fn bookmark_edits_validate_links_and_preserve_existing_entries() {
+        let mut state = State::default();
+        state.edit_bookmark(None, "Reading", "example.com/read#chapter").unwrap();
+        assert_eq!(state.bookmarks[0].url, "https://example.com/read#chapter");
+        state.bookmarks[0].icon = "https://example.com/site.png".into();
+        state.edit_bookmark(Some("https://example.com/read#chapter"), "My reading", "https://example.com/read#chapter").unwrap();
+        assert_eq!(state.bookmarks[0].title, "My reading");
+        assert_eq!(state.bookmarks[0].icon, "https://example.com/site.png");
+        for bad in ["", "two words", "javascript:alert(1)", "file:///C:/secret", "data:text/html,test", "https://", "https://user:password@example.com", "https://example.com:abc", "https://example.com:99999"] {
+            assert!(state.edit_bookmark(Some("https://example.com/read#chapter"), "Bad", bad).is_err(), "{bad}");
+            assert_eq!(state.bookmarks[0].title, "My reading");
+        }
+        assert!(state.edit_bookmark(None, "Duplicate", "https://example.com/read#chapter").is_err());
+        assert!(state.edit_bookmark(Some("https://missing.example/"), "Missing", "https://new.example/").is_err());
+        state.edit_bookmark(Some("https://example.com/read#chapter"), "", "http://localhost:3000/").unwrap();
+        assert_eq!(state.bookmarks[0].title, "localhost");
+        assert!(state.bookmarks[0].icon.is_empty());
+        assert_eq!(state.bookmarks.len(), 1);
+    }
+
+    #[test]
+    fn old_bookmarks_get_home_defaults_and_edits_survive_serialization() {
+        let mut state: State = serde_json::from_str(r#"{"bookmarks":[{"url":"https://example.com/","title":"Example"}]}"#).unwrap();
+        assert!(state.home_shortcuts && state.home_labels);
+        assert_eq!(state.home_icon_size, 48);
+        assert!(state.bookmarks[0].icon.is_empty());
+        state.edit_bookmark(Some("https://example.com/"), "New name", "https://changed.example/").unwrap();
+        state.home_icon_size = 64;
+        state.home_labels = false;
+        let restored: State = serde_json::from_str(&serde_json::to_string(&state).unwrap()).unwrap();
+        assert_eq!(restored.home_icon_size, 64);
+        assert!(!restored.home_labels);
+        assert_eq!(restored.bookmarks[0].title, "New name");
+        assert_eq!(restored.bookmarks[0].url, "https://changed.example/");
     }
 }

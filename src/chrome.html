@@ -22,6 +22,69 @@ html, body { margin: 0; height: 100%; overflow: hidden; }
 body { background: transparent; color: var(--fg); font: 13px "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
        user-select: none; }
 #box { display: none; }
+#privacy-badge { display: none; flex: none; order: 5; align-self: center; margin: 0 6px;
+  padding: 4px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--sel);
+  color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
+body.private #privacy-badge { display: block; }
+body.private { --accent: #7141bd; --ring: rgba(113,65,189,.2); }
+@media (prefers-color-scheme: dark) { body.private { --accent: #c4a1ff; --ring: rgba(196,161,255,.2); } }
+#privacy-badge:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+body.overlay.folded #privacy-badge { order: 0; }
+body.private-start { background: var(--bg); }
+#private-start { display: none; position: absolute; top: 108px; left: max(24px, calc(50% - 280px));
+  width: min(560px, calc(100% - 48px)); padding: 20px; border: 1px solid var(--line);
+  border-radius: 12px; background: var(--card); line-height: 1.5; max-height: calc(100% - 124px); overflow-y: auto; }
+body.private-start.overlay:not(.panel) #private-start { display: block; }
+#private-start h1 { margin: 0 0 8px; font-size: 20px; font-weight: 600; }
+#private-start p { margin: 8px 0; }
+#private-start button { margin-top: 6px; }
+body.home { background: var(--bg); }
+body.home #side { z-index: 2; }
+body.home #panel { z-index: 3; }
+#home { display: none; position: absolute; inset: 72px 0 0; overflow-y: auto;
+  padding: clamp(28px, 7vh, 72px) 24px 32px; background: var(--bg); }
+body.home:not(.panel) #home { display: block; }
+.home-inner { max-width: 900px; margin: 0 auto; }
+.home-head { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 32px; }
+.home-heading { flex: 1; min-width: 180px; }
+.home-heading h1 { font-size: 26px; font-weight: 600; letter-spacing: -.5px; margin: 0 0 6px; }
+#home-caption { color: var(--dim); margin: 0; line-height: 1.5; }
+.home-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+#home-grid { --site-size: 48px; --tile-size: 120px; display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--tile-size), 1fr)); gap: 12px; }
+.site { position: relative; min-width: 0; border-radius: 12px; }
+.site:hover, .site:focus-within { background: var(--hover); }
+.site-open { display: flex; width: 100%; min-height: calc(var(--site-size) + 80px); flex-direction: column;
+  align-items: center; gap: 12px; padding: 20px 10px 14px; border: 0; border-radius: 12px;
+  color: var(--fg); background: none; text-decoration: none; font: inherit; cursor: pointer; }
+.site-picture { display: grid; place-items: center; width: calc(var(--site-size) + 16px);
+  height: calc(var(--site-size) + 16px); border-radius: 14px; background: var(--card); border: 1px solid var(--line); }
+.site-picture .icon { width: var(--site-size); height: var(--site-size); border-radius: 8px; font-size: calc(var(--site-size) / 2); }
+.site-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+  overflow: hidden; overflow-wrap: anywhere; text-align: center; line-height: 1.4; max-width: 100%; }
+#home-grid.no-labels .site-name { display: none; }
+.site-edit { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; border: 0; border-radius: 7px;
+  background: var(--card); color: var(--dim); opacity: 0; cursor: pointer; font: 13px "Segoe Fluent Icons", "Segoe MDL2 Assets"; }
+.site:hover .site-edit, .site:focus-within .site-edit { opacity: 1; }
+.site-edit:hover { color: var(--fg); }
+@media (hover: none) { .site-edit { opacity: 1; } }
+#home-empty { padding: 30px 0; line-height: 1.6; color: var(--dim); }
+#home-empty[hidden] { display: none; }
+#home :is(a,button):focus-visible, #bookmark-editor :is(input,button):focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; }
+#bookmark-editor { width: min(420px, calc(100vw - 40px)); max-height: calc(100vh - 40px); overflow-y: auto;
+  padding: 24px; color: var(--fg); background: var(--card); border: 1px solid var(--line);
+  border-radius: 12px; box-shadow: var(--shadow); }
+#bookmark-editor::backdrop { background: rgba(0,0,0,.35); }
+#bookmark-editor h2 { margin: 0 0 8px; font-size: 20px; }
+#bookmark-editor .hint { color: var(--dim); font-size: 12px; line-height: 1.5; }
+#bookmark-editor label { display: block; margin: 18px 0 6px; font-weight: 600; }
+#bookmark-editor .txt { width: 100%; }
+#bookmark-error { color: #b42318; line-height: 1.5; }
+@media (prefers-color-scheme: dark) { #bookmark-error { color: #ffb4ab; } }
+.bookmark-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+#bookmark-delete { margin-right: auto; }
+#bookmark-delete[hidden] { display: none; }
 #field { width: 100%; height: 30px; border: 1px solid var(--accent); border-radius: 9px; padding: 0 12px;
          background: var(--field); color: var(--fg); font: inherit; outline: none;
          box-shadow: 0 0 0 3px var(--ring); }
@@ -243,6 +306,7 @@ select { font: inherit; color: var(--fg); background: var(--field); border: 1px 
     <div id="addr" title="Search or enter address (Ctrl+L)"><span class="lock"></span><span class="t u"></span></div>
     <div id="box"><input id="field" spellcheck="false" autocomplete="off"><ul id="sugg"></ul></div>
   </div>
+  <button id="privacy-badge" title="Private browsing protects local history. It does not hide traffic from your Wi-Fi network.">Private</button>
   <div id="pins"></div>
   <div id="tabs"></div>
   <div id="bar">
@@ -253,6 +317,32 @@ select { font: inherit; color: var(--fg); background: var(--field); border: 1px 
   </div>
 </div>
 <div id="panel"><h2 id="ptitle"></h2><input id="pq" placeholder="Filter" spellcheck="false"><div class="sbody"><div id="snav"></div><div id="plist"></div></div></div>
+<section id="private-start" aria-label="Private browsing">
+  <h1>You're browsing privately</h1>
+  <p>Visits and searches stay out of your history. Private cookies are separate from regular browsing. Downloads and saved files remain.</p>
+  <p><strong>Private mode does not hide websites from your Wi-Fi network.</strong> Use a trusted VPN or Tor Browser for network privacy.</p>
+  <button class="btn" id="private-info">Privacy settings</button>
+</section>
+<main id="home" aria-labelledby="home-title">
+  <div class="home-inner">
+    <header class="home-head">
+      <div class="home-heading"><h1 id="home-title">Your places</h1><p id="home-caption">Your bookmarks, ready when you are.</p></div>
+      <div class="home-actions"><button class="btn" id="home-add">Add website</button><button class="btn" id="home-customize">Customize</button></div>
+    </header>
+    <div id="home-grid"></div>
+    <p id="home-empty" hidden>Save your first website with Add website, or bookmark a page using the star in the toolbar.</p>
+  </div>
+</main>
+<dialog id="bookmark-editor" aria-labelledby="bookmark-heading" aria-describedby="bookmark-description">
+  <form id="bookmark-form">
+    <h2 id="bookmark-heading">Add website</h2>
+    <p id="bookmark-description" class="hint">Saved in your bookmarks and shown on Home.</p>
+    <label for="bookmark-name">Name</label><input class="txt" id="bookmark-name" maxlength="200" placeholder="e.g. My reading list" autocomplete="off">
+    <label for="bookmark-url">Website address</label><input class="txt" id="bookmark-url" required maxlength="8192" placeholder="https://example.com" spellcheck="false" autocomplete="off" aria-describedby="bookmark-error">
+    <p id="bookmark-error" role="alert"></p>
+    <div class="bookmark-actions"><button type="button" class="btn" id="bookmark-delete" hidden>Remove bookmark</button><button type="button" class="btn" id="bookmark-cancel">Cancel</button><button type="submit" class="btn" id="bookmark-save">Save</button></div>
+  </form>
+</dialog>
 <script>
 const $ = id => document.getElementById(id);
 const post = o => window.ipc.postMessage(JSON.stringify(o));
@@ -265,6 +355,10 @@ function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.
 // one that failed once is not asked for again (no flicker on every render).
 const badIcons = new Set();
 function icon(t) {
+  // Private page addresses must never be fetched by the frame's regular profile.
+  if (t.private || body.classList.contains('private')) {
+    const g = el('span', 'icon blank'); g.innerHTML = '&#xE72E;'; return g;
+  }
   if (!t.icon && (!t.url || t.url === 'about:blank')) {
     const g = el('span', 'icon blank');
     g.innerHTML = '&#xE774;'; // a globe, as Chrome shows before a page has one
@@ -272,9 +366,9 @@ function icon(t) {
   }
   const letter = el('span', 'icon', ((hostOf(t.url) || t.title || '?').replace(/^www\./, '')[0] || '?').toUpperCase());
   const h = hostOf(t.url);
-  const src = t.icon && /^(https?|data):/.test(t.icon) ? t.icon : !t.private && /^https?:/.test(t.url) && h ? `https://${h}/favicon.ico` : '';
+  const src = t.icon && /^(https?|data):/.test(t.icon) ? t.icon : !t.private && /^https?:/.test(t.url) && h ? new URL(t.url).origin + '/favicon.ico' : '';
   if (!src || badIcons.has(src)) return letter;
-  const img = el('img', 'icon'); img.decoding = 'async'; img.draggable = false; img.src = src;
+  const img = el('img', 'icon'); img.decoding = 'async'; img.draggable = false; img.alt = ''; img.loading = 'lazy'; img.referrerPolicy = 'no-referrer'; img.src = src;
   img.onerror = () => { badIcons.add(src); img.replaceWith(letter); };
   return img;
 }
@@ -294,6 +388,13 @@ function sound(t) {
 
 function render(s) {
   S = s;
+  const privateMode = !!s.privateWindow || s.tabs.some(t => t.active && t.private);
+  body.classList.toggle('private', privateMode);
+  body.classList.toggle('private-start', privateMode && s.tabs.some(t => t.active && t.url === 'about:blank'));
+  renderHome(s.home);
+  $('privacy-badge').textContent = s.privateWindow ? 'Private window' : 'Private tab';
+  $('b-mark').disabled = privateMode;
+  $('b-ext').disabled = !!s.privateWindow;
   // The app decides whether anything covers the page; a panel or box it has
   // put away must not stay drawn in the strip.
   if (!s.overlay && body.classList.contains('overlay')) { closePanel(); items = []; sugg.replaceChildren(); $('omni').classList.remove('on'); body.classList.remove('overlay'); }
@@ -315,7 +416,7 @@ function render(s) {
   }
   // New tab sits right after the last tab, as in any browser.
   const add = el('div', 'row add');
-  add.title = 'New tab (Ctrl+T)';
+  add.title = privateMode ? 'New private tab (Ctrl+T)' : 'New tab (Ctrl+T)';
   add.append(el('span', 'plus', '+'), el('span', 't label', 'New Tab'));
   add.onclick = () => post({ cmd: 'command', name: 'new' });
   tabs.append(add);
@@ -328,7 +429,7 @@ function render(s) {
   const cur = s.tabs.find(t => t.active), u = cur && cur.url !== 'about:blank' ? cur.url : '';
   const addr = $('addr'), lock = addr.querySelector('.lock'), text = addr.querySelector('.u');
   lock.innerHTML = /^https:/.test(u) ? '&#xE72E;' : u ? '&#xE946;' : '&#xE721;';
-  lock.title = /^https:/.test(u) ? 'Connection is secure' : u ? 'Not secure' : '';
+  lock.title = /^https:/.test(u) ? 'HTTPS encrypts page content. Your network may still see the site you connect to.' : u ? 'Not secure' : '';
   text.replaceChildren();
   if (u) {
     let h = hostOf(u), rest = u.replace(/^[a-z]+:\/\//, '').slice(h.length);
@@ -351,8 +452,8 @@ function render(s) {
   sh.title = s.shields ? `Shields up: ${s.blocked} blocked on this page` : 'Shields down for this page';
   if (document.activeElement !== field) {
     const a = s.tabs.find(t => t.active);
-    field.value = a ? hostOf(a.url).replace(/^www\./, '') || a.url : '';
-    field.placeholder = 'Search or enter address';
+    field.value = a && a.url !== 'about:blank' ? hostOf(a.url).replace(/^www\./, '') || a.url : '';
+    field.placeholder = privateMode ? 'Private: search or enter address' : 'Search or enter address';
   }
 }
 
@@ -360,7 +461,7 @@ function focusField(o) {
   mode = o.mode; closePanel(); finishing = false;
   $('omni').classList.add('on');
   body.classList.toggle('overlay', o.overlay);
-  field.placeholder = { tabs: 'Switch to tab…', private: 'Private tab: search or enter address', new: 'New tab: search or enter address' }[mode] || 'Search or enter address';
+  field.placeholder = mode === 'tabs' ? 'Switch to tab…' : body.classList.contains('private') ? 'Private: search or enter address' : mode === 'new' ? 'New tab: search or enter address' : 'Search or enter address';
   field.value = o.text || '';
   field.focus(); field.select();
   query();
@@ -391,9 +492,99 @@ function reset() { items = []; sugg.replaceChildren(); $('omni').classList.remov
 // mouse is over between press and release, and the click (a tab, +) is lost.
 function finish(cancel) { reset(); post({ cmd: 'done', cancel: !!cancel }); }
 
+let homeSignature = '', editedBookmark = null, removingBookmark = false;
+function renderHome(home) {
+  body.classList.toggle('home', !!home);
+  if (!home) {
+    if ($('bookmark-editor').open) $('bookmark-editor').close();
+    if (homeSignature) $('home-grid').replaceChildren();
+    homeSignature = '';
+    return;
+  }
+  const signature = JSON.stringify(home);
+  if (signature === homeSignature) return;
+  homeSignature = signature;
+  const grid = $('home-grid'), focused = document.activeElement;
+  const focusedSite = focused.closest('.site');
+  const focusedUrl = focusedSite?.dataset.url, wasEdit = focused.classList.contains('site-edit');
+  grid.replaceChildren();
+  const size = [32, 48, 64].includes(home.size) ? home.size : 48;
+  grid.style.setProperty('--site-size', size + 'px');
+  grid.style.setProperty('--tile-size', (size + 72) + 'px');
+  grid.classList.toggle('no-labels', !home.labels);
+  $('home-caption').textContent = home.show ? 'Your bookmarks, ready when you are.' : 'Saved websites are hidden. Turn them on in Customize.';
+  $('home-empty').hidden = !home.show || home.bookmarks.length > 0;
+  if (home.show) for (const bookmark of home.bookmarks) {
+    const name = bookmark.title || hostOf(bookmark.url) || bookmark.url;
+    const site = el('div', 'site'); site.dataset.url = bookmark.url;
+    const link = el('a', 'site-open'); link.href = bookmark.url; link.title = name + '\n' + bookmark.url;
+    link.setAttribute('aria-label', name);
+    const picture = el('span', 'site-picture'); picture.append(icon(bookmark));
+    link.append(picture, el('span', 'site-name', name));
+    const visit = e => {
+      if (e.button !== 0 && e.button !== 1) return;
+      e.preventDefault();
+      reset();
+      post({ cmd: 'go', text: bookmark.url, mode: e.button === 1 || e.ctrlKey || e.metaKey ? 'new' : 'here' });
+    };
+    link.onclick = visit; link.onauxclick = visit;
+    const edit = el('button', 'site-edit'); edit.innerHTML = '&#xE70F;'; edit.title = 'Edit ' + name;
+    edit.setAttribute('aria-label', 'Edit ' + name);
+    edit.onclick = () => editBookmark(bookmark);
+    site.oncontextmenu = e => { e.preventDefault(); editBookmark(bookmark); };
+    site.append(link, edit); grid.append(site);
+  }
+  if (focusedSite) {
+    const site = [...grid.children].find(s => s.dataset.url === focusedUrl);
+    (site?.querySelector(wasEdit ? '.site-edit' : '.site-open') || $('home-add')).focus();
+  }
+}
+function editBookmark(bookmark = null) {
+  editedBookmark = bookmark?.url ?? null; removingBookmark = false;
+  $('bookmark-heading').textContent = bookmark ? 'Edit bookmark' : 'Add website';
+  $('bookmark-name').value = bookmark?.title || '';
+  $('bookmark-url').value = bookmark?.url || '';
+  $('bookmark-error').textContent = '';
+  $('bookmark-delete').hidden = !bookmark;
+  $('bookmark-delete').textContent = 'Remove bookmark';
+  $('bookmark-delete').disabled = false; $('bookmark-save').disabled = false;
+  finishing = true;
+  $('bookmark-editor').showModal();
+  $('bookmark-name').focus();
+  finishing = false;
+}
+function bookmarkSaved(result) {
+  $('bookmark-save').disabled = false; $('bookmark-delete').disabled = false;
+  if (result.ok) $('bookmark-editor').close();
+  else $('bookmark-error').textContent = result.error || 'Could not save this bookmark.';
+}
+$('home-add').onclick = () => editBookmark();
+$('home-customize').onclick = () => post({ cmd: 'command', name: 'home-settings' });
+$('bookmark-cancel').onclick = () => $('bookmark-editor').close();
+$('bookmark-form').onsubmit = e => {
+  e.preventDefault();
+  $('bookmark-error').textContent = '';
+  const text = $('bookmark-url').value.trim();
+  let url;
+  try {
+    url = new URL(text.includes('://') ? text : 'https://' + text);
+    if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password || /\s/.test(text)) throw new Error();
+  } catch {
+    $('bookmark-error').textContent = 'Enter a valid http:// or https:// website address, such as example.com.';
+    $('bookmark-url').focus(); return;
+  }
+  $('bookmark-save').disabled = true;
+  post({ cmd: 'save-bookmark', original: editedBookmark, title: $('bookmark-name').value, url: url.href });
+};
+$('bookmark-delete').onclick = () => {
+  if (!removingBookmark) { removingBookmark = true; $('bookmark-delete').textContent = 'Confirm removal'; return; }
+  $('bookmark-delete').disabled = true;
+  post({ cmd: 'remove-bookmark', url: editedBookmark });
+};
+
 field.oninput = query;
 // Switching to another window is not leaving the box.
-field.onblur = () => { if (!finishing && !panelKind && (document.hasFocus() || !body.classList.contains('overlay'))) finish(); };
+field.onblur = e => { if (e.relatedTarget?.closest('#home, #bookmark-editor')) return; if (!finishing && !panelKind && (document.hasFocus() || !body.classList.contains('overlay'))) finish(); };
 field.onkeydown = e => {
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault();
@@ -405,29 +596,34 @@ field.onkeydown = e => {
 };
 field.onfocus = () => { if (!body.classList.contains('overlay') && mode !== 'tabs') { mode = 'here'; query(); } };
 
-// History and bookmarks panels
+// History, bookmarks and parked tabs
 const pq = $('pq');
 function panel(o) {
   panelKind = o.kind;
   body.classList.add('overlay', 'panel');
   $('panel').classList.add('open');
   $('panel').classList.remove('settings');
-  $('ptitle').textContent = o.kind === 'history' ? 'History' : 'Bookmarks';
+  $('ptitle').textContent = o.kind === 'history' ? 'History' : o.kind === 'parked' ? 'Parked tabs' : 'Bookmarks';
   if (document.activeElement !== pq) { pq.value = ''; pq.focus(); }
   const list = $('plist'); list.replaceChildren();
-  if (!o.items.length) list.append(el('div', 'row u', 'Nothing here yet.'));
+  if (!o.items.length) list.append(el('div', 'row u', o.kind === 'parked' ? 'Nothing parked.' : 'Nothing here yet.'));
   for (const it of o.items) {
     const r = el('div', 'row');
     r.append(icon(it), el('span', 't', it.title || it.url),
              el('span', 'u', it.last ? new Date(it.last * 1000).toLocaleString() : hostOf(it.url)));
-    if (o.kind === 'bookmarks') {
+    if (o.kind === 'bookmarks' || o.kind === 'parked') {
       const x = el('button', 'x', '×'); x.style.visibility = 'visible';
       x.style.cssText += 'border:0;background:none;color:var(--dim);font-size:14px';
-      x.onclick = e => { e.stopPropagation(); post({ cmd: 'unbookmark', url: it.url }); };
+      x.title = o.kind === 'parked' ? 'Remove' : 'Remove bookmark';
+      x.onclick = e => { e.stopPropagation(); post({ cmd: o.kind === 'parked' ? 'unpark' : 'unbookmark', url: it.url }); };
       r.append(x);
     }
     r.title = it.url;
-    r.onclick = () => { closePanel(); body.classList.remove('overlay'); post({ cmd: 'go', text: it.url, mode: 'here' }); };
+    r.onclick = () => {
+      closePanel(); body.classList.remove('overlay');
+      if (o.kind === 'parked') post({ cmd: 'open-parked', url: it.url });
+      else post({ cmd: 'go', text: it.url, mode: 'here' });
+    };
     list.append(r);
   }
 }
@@ -437,9 +633,10 @@ function closePanel() { panelKind = null; $('panel').classList.remove('open', 's
 // sends the panel back.
 let settingsAt = 'start';
 const SECTIONS = [
-  ['start', 'General', '&#xE80F;'], ['appearance', 'Appearance', '&#xE790;'], ['shields', 'Shields', '&#xEA18;'],
+  ['start', 'General', '&#xE80F;'], ['home', 'Home', '&#xE80F;'], ['appearance', 'Appearance', '&#xE790;'], ['shields', 'Shields', '&#xEA18;'],
   ['privacy', 'Privacy', '&#xE72E;'], ['autofill', 'Passwords and autofill', '&#xE8D7;'], ['extensions', 'Extensions', '&#xEA86;'],
   ['downloads', 'Downloads', '&#xE896;'], ['languages', 'Languages', '&#xF2B7;'], ['system', 'System', '&#xE7F8;'],
+  ['goodies', 'Goodies', '&#xE82F;'],
   ['about', 'About Brisklark', '&#xE946;'],
 ];
 function settingsGo(key) {
@@ -488,7 +685,11 @@ function settings(o) {
     return s;
   };
   const toggle = (on, f) => { const c = el('input', 'sw'); c.type = 'checkbox'; c.checked = on; c.onchange = () => f(c.checked); return c; };
-  const sw = (key, on) => toggle(on, v => set(key, v));
+  const sw = (key, on) => {
+    const control = toggle(on, v => set(key, v));
+    control.disabled = !!o.privateWindow && ['passwords', 'autofill'].includes(key);
+    return control;
+  };
   const pref = name => toggle(o.prefs[name], v => set('pref', { name, on: v }));
   const btn = (text, onclick, disabled) => { const b = el('button', 'btn', text); b.onclick = onclick; b.disabled = !!disabled; return b; };
   const group = (...items) => { const g = el('div', 'grp'); g.append(...items); return g; };
@@ -519,6 +720,12 @@ function settings(o) {
   row('From a file', 'A bookmarks .html file', btn('Choose file…', () => set('import', 40)));
   row('Export', o.bookmarks + ' bookmarks · ' + o.history + ' history entries',
       group(btn('Bookmarks', () => set('import', 41), !o.bookmarks), btn('History', () => set('import', 42), !o.history)));
+
+  sec('home', 'Home');
+  row('Show bookmarked websites', 'Your saved websites appear on every new tab', sw('home-shortcuts', o.home.show));
+  row('Icon size', 'Applies to all websites on Home', select([['32', 'Small'], ['48', 'Medium'], ['64', 'Large']], String(o.home.size), v => set('home-icon-size', Number(v))));
+  row('Show website names', 'Names are always available when you hover or use a screen reader', sw('home-labels', o.home.labels));
+  note('Add or edit websites on Home. Changes also update your bookmarks. Website icons load directly from saved sites; a letter appears when no icon is available. Private tabs keep their private start page.');
 
   sec('appearance', 'Appearance');
   row('Hide the tabs', 'Ctrl+S shows them again', sw('folded', o.folded));
@@ -553,18 +760,27 @@ function settings(o) {
   }
 
   sec('privacy', 'Privacy');
+  if (o.privateWindow) note('This is a private window. Settings changes last only for this window. Your regular session is not replaced.');
+  row('Private window', 'Ctrl+Shift+N · every tab in the new window stays private', btn('Open private window', () => set('private-window', true)));
+  row('Private tab', 'A private tab in this window', btn('Open private tab', () => set('private-tab', true)));
+  note('Private browsing keeps visits and searches out of Brisklark history and session restore. Cookies and site data are separate from regular browsing. Close all private tabs in a session to end it. Downloads and anything you copy or save remain.');
+  sub('Network privacy');
+  note('Private mode does not hide websites from a Wi-Fi administrator or your internet provider. HTTPS encrypts searches and page content in transit, but site names and connection details may still be visible.');
+  note('To hide destinations from the local network, use a trusted VPN with a kill switch, or Tor Browser. Brisklark does not include a VPN and cannot verify that your connection is protected. A proxy alone does not guarantee encryption.');
+  row('VPN connection', 'Connect using your VPN app, or Windows VPN settings', btn('Windows VPN settings', () => set('winsettings', 'network-vpn')));
+  sub('Clear browsing data');
   row('Browsing history', 'History and recently closed tabs', clear('history'));
   row('Cookies and site data', 'Signs you out of websites', clear('cookies'));
   row('Cached images and files', 'Pages may load slower once', clear('cache'));
-  row('Private tabs', 'Ctrl+Shift+N · nothing is kept when they close', null);
 
   sec('autofill', 'Passwords and autofill');
+  if (o.privateWindow) note('Password saving and form autofill stay off in private windows.');
   row('Offer to save passwords', null, sw('passwords', o.passwords));
   row('Save and fill addresses and forms', 'Names, addresses, phone numbers', sw('autofill', o.autofill));
   row('Remove saved passwords and forms', 'Cleared with cookies and site data', btn('Privacy', () => settingsGo('privacy')));
 
   sec('extensions', 'Extensions');
-  if (!o.extsOk) note('This PC\'s WebView2 runtime is too old for extensions. Update Microsoft Edge WebView2 to use them.');
+  if (!o.extsOk) note(o.privateWindow ? 'Extensions are unavailable in private windows. Manage them in a regular window.' : 'This PC\'s WebView2 runtime is too old for extensions. Update Microsoft Edge WebView2 to use them.');
   const link = el('input', 'txt'); link.placeholder = 'Chrome Web Store link'; link.spellcheck = false;
   link.onkeydown = e => { if (e.key === 'Enter') set('ext-install', link.value); };
   row('Install', o.installing ? 'Installing…' : 'Or open an extension\'s page and press Add to Brisklark',
@@ -597,6 +813,14 @@ function settings(o) {
   row('Relaunch Brisklark', 'Your tabs come back', btn('Relaunch', () => set('relaunch', true)));
   row('Reset settings', 'Keeps tabs, bookmarks, history and extensions', sure('Reset', () => set('reset', true)));
 
+  sec('goodies', 'Goodies');
+  row('Copy as Markdown', 'Ctrl+Shift+M · the selection, or the whole page',
+      btn('Copy this page', () => set('copy-md', true), !o.live));
+  row('Duplicate tabs', o.dups ? o.dups + ' open more than once' : 'None open',
+      btn('Close duplicates', () => set('dedupe', true), !o.dups));
+  row('Parked tabs', o.parked ? o.parked + ' waiting, none loaded' : 'Nothing parked',
+      btn('Open list', () => set('parked', true), !o.parked));
+
   sec('about', 'About Brisklark');
   const logo = el('div', 'about');
   const src = el('a', null, 'Source code');
@@ -616,7 +840,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && panelKind)
 // A click on the empty space around the box or a panel puts it away, as Esc does,
 // whether or not the box had the cursor.
 document.addEventListener('mousedown', e => {
-  if (!body.classList.contains('overlay') || e.target.closest('#box, #panel, #side')) return;
+  if ($('bookmark-editor').open || !body.classList.contains('overlay') || e.target.closest('#box, #panel, #side, #private-start, #home')) return;
   e.preventDefault();
   closePanel(); finish();
 });
@@ -635,6 +859,8 @@ $('w-max').onclick = () => post({ cmd: 'maximize' });
 $('w-close').onclick = () => post({ cmd: 'quit' });
 
 $('b-mark').onclick = () => post({ cmd: 'command', name: 'bookmark' });
+$('privacy-badge').onclick = () => post({ cmd: 'command', name: 'privacy' });
+$('private-info').onclick = () => post({ cmd: 'command', name: 'privacy' });
 $('b-shield').onclick = () => post({ cmd: 'command', name: 'shield' });
 $('b-menu').onclick = () => post({ cmd: 'command', name: 'menu' });
 $('b-ext').onclick = () => post({ cmd: 'command', name: 'extensions' });
